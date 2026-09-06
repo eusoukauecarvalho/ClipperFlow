@@ -29,6 +29,9 @@
   <g id="i-filme"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M5.5 3v10M10.5 3v10"/></g>
   <g id="i-upload"><path d="M8 11V3M5 6l3-3 3 3"/><path d="M2.5 11v1.5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V11"/></g>
   <g id="i-paleta"><circle cx="8" cy="8" r="5.5"/><circle cx="6" cy="6.2" r=".9"/><circle cx="10" cy="6.2" r=".9"/><circle cx="8" cy="10.4" r=".9"/></g>
+  <g id="i-esq"><path d="M10 3.5 5.5 8l4.5 4.5"/></g>
+  <g id="i-dir"><path d="M6 3.5 10.5 8 6 12.5"/></g>
+  <g id="i-agenda"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 2v2.5M10.5 2v2.5"/></g>
   <g id="i-relogio"><circle cx="8" cy="8" r="5.5"/><path d="M8 4.8V8l2.2 1.6"/></g>
   <g id="i-plug"><path d="M6 2.5v4M10 2.5v4M4.5 6.5h7v2a3.5 3.5 0 0 1-7 0z"/><path d="M8 12v2"/></g>
   <g id="i-livro"><path d="M3 3.5h4a2 2 0 0 1 2 2v8a1.6 1.6 0 0 0-1.6-1.6H3z"/><path d="M13 3.5H9a2 2 0 0 0-2 2v8a1.6 1.6 0 0 1 1.6-1.6H13z"/></g>
@@ -60,6 +63,11 @@
       <svg class="nav-item__icone"><use href="#i-upload"/></svg>
       <span class="nav-item__rotulo">Publicação</span>
       <span class="nav-item__contagem" id="nav-contagem-fila"></span>
+    </button>
+
+    <button class="nav-item" type="button" data-view="agenda">
+      <svg class="nav-item__icone"><use href="#i-agenda"/></svg>
+      <span class="nav-item__rotulo">Agenda</span>
     </button>
 
     <p class="nav-grupo">Configuração</p>
@@ -246,6 +254,38 @@
               <tbody id="queue-table-body"></tbody>
             </table>
           </div>
+        </div>
+      </section>
+
+      <!-- ===================== AGENDA ===================== -->
+      <section class="view" id="view-agenda">
+        <div class="vista__cabeca">
+          <h2 class="vista__titulo">Agenda</h2>
+          <p class="vista__sub">O que já foi publicado e o que está agendado, dia a dia. Clique num dia para ver os posts.</p>
+        </div>
+
+        <div class="agenda__topo">
+          <button class="acao acao--ghost acao--icone acao--pequena" type="button" id="agenda-anterior" aria-label="Mês anterior">
+            <svg><use href="#i-esq"/></svg>
+          </button>
+          <span class="agenda__mes" id="agenda-mes" aria-live="polite"></span>
+          <button class="acao acao--ghost acao--icone acao--pequena" type="button" id="agenda-proximo" aria-label="Próximo mês">
+            <svg><use href="#i-dir"/></svg>
+          </button>
+          <button class="acao acao--sutil acao--pequena" type="button" id="agenda-hoje">Hoje</button>
+          <span class="agenda__espaco"></span>
+          <span class="badge badge--ok">publicado</span>
+          <span class="badge badge--alerta">agendado</span>
+        </div>
+
+        <div class="agenda__grade" id="agenda-grade" role="grid" aria-labelledby="agenda-mes"></div>
+
+        <div class="dia-painel" id="dia-painel" hidden>
+          <div class="dia-painel__cabeca">
+            <span class="dia-painel__data" id="dia-painel-data"></span>
+            <span class="dia-post__meta" id="dia-painel-resumo"></span>
+          </div>
+          <div class="dia-posts" id="dia-posts"></div>
         </div>
       </section>
 

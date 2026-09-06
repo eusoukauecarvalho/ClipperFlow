@@ -16,6 +16,7 @@ const TITULOS_VISTA = {
   new: "Novo corte",
   clips: "Clipes",
   queue: "Publicação",
+  agenda: "Agenda",
   style: "Estilo",
   settings: "Horários",
   connectors: "Conectores",
@@ -129,6 +130,7 @@ async function loadClips() {
   state.clips = await api(`/api/projects/clips?path=${encodeURIComponent(state.project)}`);
   renderClipKpis();
   renderClipGrid();
+  renderAgenda();
   qs("nav-contagem-clipes").textContent = state.clips.length || "";
 }
 
@@ -412,6 +414,188 @@ async function renderizar(outputDir) {
     toast("Erro ao renderizar: " + error.message, "erro");
   }
 }
+
+// --- agenda -------------------------------------------------------------
+
+const DIAS_SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const LINHAS_MES = 6;   // fixo: mês com 4 ou 6 semanas não pode mudar a altura da grade
+const POSTS_VISIVEIS_NA_CELULA = 3;
+
+const agenda = { mes: new Date(), diaSelecionado: null };
+
+/** Chave local YYYY-MM-DD. Não uso toISOString: ele converte para UTC e
+    joga o post das 02:00 de Brasília para o dia anterior. */
+function chaveData(data) {
+  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
+}
+
+/** Posts por dia. Só entram clipes com data — publicado sem data marcada
+    não tem onde cair no calendário, e inventar um dia seria mentira. */
+function agruparPorDia() {
+  const mapa = new Map();
+  for (const clip of state.clips) {
+    if (!clip.publish_at) continue;
+    const quando = new Date(clip.publish_at);
+    if (Number.isNaN(quando.getTime())) continue;
+    const chave = chaveData(quando);
+    if (!mapa.has(chave)) mapa.set(chave, []);
+    mapa.get(chave).push({ ...clip, quando });
+  }
+  for (const lista of mapa.values()) lista.sort((a, b) => a.quando - b.quando);
+  return mapa;
+}
+
+/** Ao abrir, mostra o dia que interessa: hoje se tiver post, senão o próximo
+    dia agendado. Abrir num painel vazio não diz nada a quem chegou. */
+function escolherDiaInicial(porDia) {
+  if (agenda.diaSelecionado) return;
+  const hoje = chaveData(new Date());
+  if (porDia.has(hoje)) { agenda.diaSelecionado = hoje; return; }
+
+  const futuros = [...porDia.keys()].filter((d) => d >= hoje).sort();
+  const escolhido = futuros[0] ?? [...porDia.keys()].sort().pop();
+  if (!escolhido) return;
+
+  agenda.diaSelecionado = escolhido;
+  const [ano, mes] = escolhido.split("-").map(Number);
+  agenda.mes = new Date(ano, mes - 1, 1);
+}
+
+function renderAgenda() {
+  const porDia = agruparPorDia();
+  escolherDiaInicial(porDia);
+  const referencia = agenda.mes;
+  const ano = referencia.getFullYear();
+  const mes = referencia.getMonth();
+
+  qs("agenda-mes").textContent = referencia.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+
+  const grade = qs("agenda-grade");
+  grade.innerHTML = DIAS_SEMANA.map((d) => `<div class="agenda__semana" role="columnheader">${d}</div>`).join("");
+
+  const primeiro = new Date(ano, mes, 1);
+  const inicio = new Date(ano, mes, 1 - primeiro.getDay());
+  const hojeChave = chaveData(new Date());
+
+  for (let i = 0; i < LINHAS_MES * 7; i += 1) {
+    const dia = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
+    const chave = chaveData(dia);
+    const posts = porDia.get(chave) ?? [];
+    const foraDoMes = dia.getMonth() !== mes;
+
+    const celula = document.createElement("button");
+    celula.type = "button";
+    celula.className = `agenda__dia${foraDoMes ? " agenda__dia--fora" : ""}${chave === hojeChave ? " agenda__dia--hoje" : ""}`;
+    celula.setAttribute("role", "gridcell");
+    celula.dataset.dia = chave;
+    if (chave === agenda.diaSelecionado) celula.setAttribute("aria-selected", "true");
+
+    const rotuloAcessivel = dia.toLocaleDateString("pt-BR", { day: "numeric", month: "long" });
+    celula.setAttribute("aria-label", posts.length
+      ? `${rotuloAcessivel}, ${posts.length} post${posts.length > 1 ? "s" : ""}`
+      : `${rotuloAcessivel}, sem posts`);
+
+    const visiveis = posts.slice(0, POSTS_VISIVEIS_NA_CELULA);
+    celula.innerHTML = `
+      <span class="agenda__num">${dia.getDate()}${posts.length ? `<span class="agenda__contagem">${posts.length}</span>` : ""}</span>
+      ${visiveis.map((post) => `
+        <span class="agenda__post agenda__post--${post.upload_status}">
+          <i></i>
+          <span class="agenda__hora">${post.quando.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+          <span class="agenda__titulo-mini">${escapeHtml(post.titulo)}</span>
+        </span>`).join("")}
+      ${posts.length > POSTS_VISIVEIS_NA_CELULA ? `<span class="agenda__mais">+${posts.length - POSTS_VISIVEIS_NA_CELULA} mais</span>` : ""}`;
+
+    celula.addEventListener("click", () => selecionarDia(chave));
+    grade.appendChild(celula);
+  }
+
+  if (agenda.diaSelecionado) renderPainelDia(porDia);
+}
+
+function selecionarDia(chave) {
+  agenda.diaSelecionado = agenda.diaSelecionado === chave ? null : chave;
+  renderAgenda();
+  if (agenda.diaSelecionado) {
+    qs("dia-painel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } else {
+    qs("dia-painel").hidden = true;
+  }
+}
+
+function renderPainelDia(porDia) {
+  const painel = qs("dia-painel");
+  const posts = porDia.get(agenda.diaSelecionado) ?? [];
+  const [ano, mes, dia] = agenda.diaSelecionado.split("-").map(Number);
+  const data = new Date(ano, mes - 1, dia);
+
+  painel.hidden = false;
+  qs("dia-painel-data").textContent = data.toLocaleDateString("pt-BR", {
+    weekday: "long", day: "numeric", month: "long",
+  });
+  qs("dia-painel-resumo").textContent = posts.length
+    ? `${posts.length} post${posts.length > 1 ? "s" : ""}`
+    : "";
+
+  if (!posts.length) {
+    qs("dia-posts").innerHTML = `<div class="vazio">
+      <p class="vazio__titulo">Nenhum post neste dia</p>
+      <p class="vazio__texto">Agende um lote em Publicação para preencher a agenda.</p>
+    </div>`;
+    return;
+  }
+
+  qs("dia-posts").innerHTML = "";
+  for (const post of posts) {
+    const linha = document.createElement("article");
+    linha.className = "dia-post";
+    const thumb = post.video_existe
+      ? `<img class="dia-post__thumb" loading="lazy" alt="" src="/api/projects/thumbnail?path=${encodeURIComponent(state.project)}&clip_id=${post.id}">`
+      : '<span class="dia-post__thumb"></span>';
+
+    linha.innerHTML = `
+      ${thumb}
+      <div class="dia-post__info">
+        <span class="dia-post__hora">${post.quando.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+        <p class="dia-post__titulo">${escapeHtml(post.titulo)}</p>
+        <span class="dia-post__meta">${escapeHtml(post.duracao)} · ${escapeHtml(rotuloStatus(post.upload_status))}</span>
+      </div>
+      <div class="dia-post__acoes"></div>`;
+
+    const acoes = linha.querySelector(".dia-post__acoes");
+    if (post.video_existe) {
+      const ver = document.createElement("button");
+      ver.className = "acao acao--ghost acao--pequena";
+      ver.type = "button";
+      ver.innerHTML = '<svg><use href="#i-play"/></svg> Ver';
+      ver.addEventListener("click", () => abrirVideo(post));
+      acoes.appendChild(ver);
+    }
+    if (post.video_id) {
+      const noYoutube = document.createElement("a");
+      noYoutube.className = "acao acao--sutil acao--pequena";
+      noYoutube.href = `https://youtu.be/${post.video_id}`;
+      noYoutube.target = "_blank";
+      noYoutube.rel = "noopener";
+      noYoutube.textContent = "YouTube";
+      acoes.appendChild(noYoutube);
+    }
+    qs("dia-posts").appendChild(linha);
+  }
+}
+
+function mudarMes(delta) {
+  agenda.mes = new Date(agenda.mes.getFullYear(), agenda.mes.getMonth() + delta, 1);
+  renderAgenda();
+}
+
+qs("agenda-anterior").addEventListener("click", () => mudarMes(-1));
+qs("agenda-proximo").addEventListener("click", () => mudarMes(1));
+qs("agenda-hoje").addEventListener("click", () => {
+  agenda.mes = new Date();
+  agenda.diaSelecionado = chaveData(new Date());
+  renderAgenda();
+});
 
 // --- estilo -------------------------------------------------------------
 

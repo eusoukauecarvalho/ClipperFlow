@@ -306,3 +306,149 @@
 
 /* Botão dentro de card não deve esticar (a âncora é do componente) */
 .card .acao, .bloco .acao { align-self: flex-start; }
+
+/* =========================================================================
+   AGENDA — calendário de publicação.
+   A biblioteca tem `.cal` (entrada.css), mas aquilo é um SELETOR de data:
+   268px, colunas de 34px, uma escolha por vez. Aqui cada dia precisa exibir
+   conteúdo (os posts daquele dia), então é outro componente — construído
+   sobre os mesmos princípios: 6 linhas fixas para o mês não pular de altura,
+   "hoje" marcado por ponto (borda competiria com o dia selecionado), e
+   profundidade por borda.
+   ========================================================================= */
+.agenda__topo {
+  display: flex; align-items: center; gap: var(--space-element);
+  margin-bottom: var(--space-card); flex-wrap: wrap;
+}
+.agenda__mes {
+  font-size: 0.9375rem; font-weight: 650; color: var(--ink);
+  letter-spacing: var(--tk-h3); min-width: 168px;
+}
+/* `capitalize` maiusculiza toda palavra e produz "Setembro De 2026".
+   ::first-letter sobe só a inicial, que é o que o português pede. */
+.agenda__mes::first-letter,
+.dia-painel__data::first-letter { text-transform: uppercase; }
+.agenda__espaco { flex: 1; }
+
+.agenda__grade {
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--border-w);
+  background: var(--border);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--r-card);
+  overflow: hidden;
+}
+.agenda__semana {
+  background: var(--surface);
+  padding: 7px 4px; text-align: center;
+  font-family: var(--font-mono); font-size: 0.5625rem;
+  text-transform: uppercase; letter-spacing: var(--tk-micro);
+  color: var(--fade);
+}
+
+.agenda__dia {
+  background: var(--void);
+  min-height: 96px; padding: 6px;
+  display: flex; flex-direction: column; gap: 3px;
+  text-align: left; font-family: var(--font-body);
+  border: 0; cursor: pointer; color: inherit;
+  transition: background-color var(--t-in) var(--ease);
+}
+.agenda__dia:hover { background: var(--surface); }
+.agenda__dia:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.agenda__dia--fora { opacity: 0.4; }
+.agenda__dia[aria-selected="true"] {
+  background: color-mix(in oklab, var(--accent) 12%, var(--void));
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.agenda__num {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.75rem; font-variant-numeric: tabular-nums;
+  color: var(--muted); font-weight: 500;
+}
+.agenda__dia--hoje .agenda__num { color: var(--accent-texto); font-weight: 700; }
+/* Hoje é um PONTO, não uma borda — borda competiria com o dia selecionado.
+   Regra herdada do calendário da biblioteca. */
+.agenda__dia--hoje .agenda__num::after {
+  content: ''; width: 4px; height: 4px; border-radius: 500px;
+  background: var(--accent-texto); flex: none;
+}
+.agenda__contagem {
+  margin-left: auto; font-family: var(--font-mono); font-size: 0.5625rem;
+  color: var(--fade);
+}
+
+/* Ficha compacta do post dentro da célula do dia */
+.agenda__post {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 5px; border-radius: 4px;
+  background: var(--surface);
+  font-size: 0.625rem; line-height: 1.3;
+  color: var(--muted);
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.agenda__post i {
+  width: 5px; height: 5px; border-radius: 500px; flex: none;
+  background: var(--fade);
+}
+.agenda__post--publicado i { background: var(--ok); }
+.agenda__post--agendado i { background: var(--alerta); }
+.agenda__hora {
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  color: var(--ink); flex: none;
+}
+.agenda__titulo-mini { overflow: hidden; text-overflow: ellipsis; }
+.agenda__mais { font-size: 0.5625rem; color: var(--fade); padding-left: 5px; }
+
+/* ---------- PAINEL DO DIA ---------- */
+.dia-painel { margin-top: var(--space-card); }
+.dia-painel__cabeca {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin-bottom: var(--space-element);
+}
+.dia-painel__data {
+  font-size: 0.9375rem; font-weight: 650; color: var(--ink);
+  letter-spacing: var(--tk-h3);
+}
+
+.dia-posts { display: grid; gap: var(--space-element); }
+.dia-post {
+  display: grid; grid-template-columns: 54px 1fr auto;
+  gap: 12px; align-items: center;
+  padding: 10px; border-radius: var(--r-card);
+  border: var(--border-w) solid var(--border);
+  background: var(--raised);
+}
+.dia-post__thumb {
+  width: 54px; aspect-ratio: 9 / 16; border-radius: var(--r-campo);
+  background: var(--surface); object-fit: cover; display: block;
+}
+.dia-post__info { display: grid; gap: 3px; min-width: 0; }
+.dia-post__hora {
+  font-family: var(--font-mono); font-size: 0.6875rem;
+  color: var(--accent-texto); font-variant-numeric: tabular-nums;
+}
+.dia-post__titulo {
+  font-size: var(--dens-texto); font-weight: 600; color: var(--ink);
+  margin: 0; line-height: 1.35;
+}
+.dia-post__meta { font-family: var(--font-mono); font-size: 0.625rem; color: var(--fade); }
+.dia-post__acoes { display: flex; gap: 6px; align-items: center; }
+
+@media (max-width: 620px) {
+  .agenda__dia { min-height: 62px; }
+  .agenda__post { display: none; }
+  .dia-post { grid-template-columns: 44px 1fr; }
+  .dia-post__acoes { grid-column: 1 / -1; }
+}
+
+/* ---------- CORREÇÃO DE BUG DA BIBLIOTECA ----------
+   controles.css tem:
+     .acao--pequena            { padding: 0 10px; }
+     .acao--pequena.acao--icone { width: 28px; }   ← corrige a largura, não o padding
+   O resultado é um botão de 28px com 20px de padding lateral: sobram 8px para
+   um ícone de 14px, e toda seta/hambúrguer vira um traço. `.acao--icone` já
+   zera o padding, mas perde para `.acao--pequena`, que vem depois no arquivo.
+   Reportar à biblioteca; aqui fica a correção local. */
+.acao--pequena.acao--icone { padding: 0; }

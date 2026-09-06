@@ -22,6 +22,7 @@ class Project:
     path: str  # absoluto, usado como identificador nas rotas
     clip_count: int
     total_duration_min: float
+    modified: float  # epoch do metadata.json — ordena pelo projeto ativo
 
 
 def _read_json(path: Path) -> dict:
@@ -53,9 +54,12 @@ def discover_projects() -> tuple[Project, ...]:
                     path=str(metadata_path.parent),
                     clip_count=len(clips),
                     total_duration_min=round(duration_min, 1),
+                    modified=metadata_path.stat().st_mtime,
                 )
             )
-    return tuple(sorted(found, key=lambda p: p.name))
+    # Mais recente primeiro: quem abre o painel quer o projeto em que está
+    # trabalhando, não o primeiro em ordem alfabética.
+    return tuple(sorted(found, key=lambda p: -p.modified))
 
 
 def load_clips(project_path: str) -> list[dict]:
