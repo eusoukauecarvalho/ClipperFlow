@@ -30,6 +30,7 @@
   <g id="i-upload"><path d="M8 11V3M5 6l3-3 3 3"/><path d="M2.5 11v1.5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V11"/></g>
   <g id="i-paleta"><circle cx="8" cy="8" r="5.5"/><circle cx="6" cy="6.2" r=".9"/><circle cx="10" cy="6.2" r=".9"/><circle cx="8" cy="10.4" r=".9"/></g>
   <g id="i-youtube" transform="scale(0.6667)"><path fill-rule="evenodd" d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z"/></g>
+  <g id="i-tiktok" transform="scale(0.6667)"><path d="M16.6 5.82a4.28 4.28 0 0 1-1.03-.1 4.3 4.3 0 0 1-2.5-1.86 4.28 4.28 0 0 1-.68-2.3h-2.9v11.2a2.6 2.6 0 1 1-1.85-2.5V7.3a5.48 5.48 0 1 0 4.75 5.43V7.06a7.16 7.16 0 0 0 4.2 1.35V5.82z"/></g>
   <g id="i-esq"><path d="M10 3.5 5.5 8l4.5 4.5"/></g>
   <g id="i-dir"><path d="M6 3.5 10.5 8 6 12.5"/></g>
   <g id="i-agenda"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 2v2.5M10.5 2v2.5"/></g>
@@ -514,6 +515,36 @@
             <li class="doc-etapa"><div>
               <p class="doc-etapa__nome">Publicação</p>
               <p class="doc-etapa__texto">Upload privado com data de publicação — o YouTube abre sozinho na hora marcada.</p>
+            </div></li>
+          </ol>
+        </div>
+
+        <div class="card bloco">
+          <p class="bloco__titulo">Publicar no TikTok</p>
+          <p class="doc-etapa__texto" style="margin-bottom:14px">
+            A integração está pronta no código, mas depende de dois portões do TikTok
+            que levam semanas. O caminho, na ordem:
+          </p>
+          <ol class="doc-etapas">
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Registrar o app</p>
+              <p class="doc-etapa__texto">Em developers.tiktok.com, criar o app, adicionar o produto <code>Content Posting API</code> e ligar a opção <code>Direct Post</code>.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Pedir o escopo video.publish</p>
+              <p class="doc-etapa__texto">Aprovação manual do TikTok: de 2 a 6 semanas, com um vídeo demonstrando o fluxo completo de ponta a ponta.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Autorizar a conta</p>
+              <p class="doc-etapa__texto"><code>tiktok_auth.py authorize</code> gera o link e o code_verifier; <code>exchange</code> troca o código pelo token. O access_token dura 24h e é renovado sozinho pelo refresh_token, que vale 365 dias.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Passar pela auditoria</p>
+              <p class="doc-etapa__texto"><b>Etapa separada da aprovação.</b> Até ela terminar, todo vídeo enviado é forçado a privado — não é rascunho: está publicado e invisível. O painel avisa quando detecta essa condição.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Publicar</p>
+              <p class="doc-etapa__texto"><code>tiktok_upload.py</code> consulta o creator_info, envia em fragmentos e acompanha o status. Limite da API: 6 chamadas por minuto.</p>
             </div></li>
           </ol>
         </div>

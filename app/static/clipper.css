@@ -499,3 +499,4 @@
   content: ''; width: 5px; height: 5px; border-radius: 500px;
   background: var(--fade); flex: none;
 }
+.canal__logo--tiktok { fill: var(--ink); }

@@ -7,7 +7,16 @@ const state = { project: null, clips: [], config: null, jobId: null, canal: null
    Instagram e TikTok entrarem sem reescrever a agenda. */
 const CANAIS = {
   youtube: { nome: "YouTube", icone: "i-youtube", classe: "canal__logo--youtube" },
+  tiktok: { nome: "TikTok", icone: "i-tiktok", classe: "canal__logo--tiktok" },
 };
+
+/** Onde cada clipe já saiu. A fila guarda um status por canal, então o mesmo
+    corte pode estar publicado no YouTube e pendente no TikTok. */
+function canaisDoPost(clip) {
+  const canais = ["youtube"];
+  if (clip.tiktok_status === "publicado") canais.push("tiktok");
+  return canais;
+}
 function marcaCanal(id = "youtube", comNome = false) {
   const canal = CANAIS[id];
   if (!canal) return "";
