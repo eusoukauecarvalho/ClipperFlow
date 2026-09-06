@@ -1,0 +1,9 @@
+# Engine de transcrição recomendado (offline, sem API key).
+faster-whisper>=1.0.0
+
+# Alternativa oficial da OpenAI (mais pesada, também offline).
+# openai-whisper>=20231117
+
+# ffmpeg e ffprobe NÃO são pacotes Python:
+#   macOS:  brew install ffmpeg
+#   Linux:  sudo apt-get install ffmpeg

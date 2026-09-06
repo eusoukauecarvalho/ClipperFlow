@@ -1,0 +1,11 @@
+# Credenciais reais — nunca versionar
+.youtube/
+panel_config.json
+
+# Cache e artefatos gerados
+__pycache__/
+*.pyc
+app/.cache/
+.pytest_cache/
+
+.DS_Store
