@@ -1,7 +1,23 @@
 /* Clipper Flow — painel local.
    O vocabulário visual vem da biblioteca do design system; aqui só o estado. */
 
-const state = { project: null, clips: [], config: null, jobId: null };
+const state = { project: null, clips: [], config: null, jobId: null, canal: null };
+
+/* Onde o post vai sair. Hoje só YouTube; a estrutura já é por canal para
+   Instagram e TikTok entrarem sem reescrever a agenda. */
+const CANAIS = {
+  youtube: { nome: "YouTube", icone: "i-youtube", classe: "canal__logo--youtube" },
+};
+function marcaCanal(id = "youtube", comNome = false) {
+  const canal = CANAIS[id];
+  if (!canal) return "";
+  const nome = comNome
+    ? `<span class="canal__nome">${escapeHtml(state.canal?.channel_title ?? canal.nome)}</span>`
+    : "";
+  return `<span class="canal" title="${escapeHtml(state.canal?.channel_title ?? canal.nome)}">
+    <svg class="canal__logo ${canal.classe}" aria-hidden="true"><use href="#${canal.icone}"/></svg>${nome}
+  </span>`;
+}
 
 const STATUS_BADGE = { publicado: "ok", agendado: "alerta", pendente: "neutro", nao_enfileirado: "neutro" };
 /* O status vem do backend em snake_case; a tela mostra a palavra que a pessoa usa. */
@@ -501,6 +517,7 @@ function renderAgenda() {
       ${visiveis.map((post) => `
         <span class="agenda__post agenda__post--${post.upload_status}">
           <i></i>
+          ${marcaCanal()}
           <span class="agenda__hora">${post.quando.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
           <span class="agenda__titulo-mini">${escapeHtml(post.titulo)}</span>
         </span>`).join("")}
@@ -556,7 +573,10 @@ function renderPainelDia(porDia) {
     linha.innerHTML = `
       ${thumb}
       <div class="dia-post__info">
-        <span class="dia-post__hora">${post.quando.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+        <span class="dia-post__canal">
+          ${marcaCanal("youtube", true)}
+          <span class="dia-post__hora">${post.quando.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+        </span>
         <p class="dia-post__titulo">${escapeHtml(post.titulo)}</p>
         <span class="dia-post__meta">${escapeHtml(post.duracao)} · ${escapeHtml(rotuloStatus(post.upload_status))}</span>
       </div>
@@ -761,6 +781,8 @@ async function checarYoutube() {
   try {
     const status = await api("/api/connectors/youtube");
     if (status.connected) {
+      state.canal = status;
+      if (state.clips.length) renderAgenda();
       alvo.innerHTML =
         linhaConector("Status", '<span class="badge badge--ok">conectado</span>') +
         linhaConector("Canal", escapeHtml(status.channel_title)) +

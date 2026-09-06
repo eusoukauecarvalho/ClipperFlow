@@ -22,8 +22,22 @@
   min-height: 100vh;
   border: 0;
   border-radius: 0;
+  align-items: start;   /* sem isto, a coluna lateral estica até a altura do conteúdo */
 }
-.app__aside { overflow-y: auto; }
+
+/* A lateral e a topbar são CHASSI: ficam parados enquanto o conteúdo rola.
+   Como item de grade a lateral esticava junto com a página, e uma lista de 45
+   clipes empurrava a navegação para fora da tela. */
+.app__aside {
+  position: sticky; top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.app__topo {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+}
 .app__conteudo { padding: var(--space-card) var(--space-card) var(--space-section); }
 .app__conteudo > .view { width: min(100%, 1040px); margin-inline: auto; }
 
@@ -452,3 +466,24 @@
    zera o padding, mas perde para `.acao--pequena`, que vem depois no arquivo.
    Reportar à biblioteca; aqui fica a correção local. */
 .acao--pequena.acao--icone { padding: 0; }
+
+/* ---------- CANAL DE PUBLICAÇÃO ----------
+   Marca de onde o post vai sair. Modelado como "canal" e não como "YouTube"
+   porque a mesma agenda vai receber Instagram e TikTok — o que muda é o
+   token de cor e o glifo, não a estrutura.
+   A cor da marca é literal de propósito: logo de terceiro não obedece à
+   paleta do produto, senão deixa de ser reconhecível. */
+:root { --canal-youtube: #FF0033; }
+
+.canal { display: inline-flex; align-items: center; gap: 5px; flex: none; }
+.canal__logo { flex: none; stroke: none; }
+.canal__logo--youtube { fill: var(--canal-youtube); }
+.canal__nome {
+  font-size: 0.6875rem; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Na célula do dia o espaço é mínimo: só o glifo, sem nome. */
+.agenda__post .canal__logo { width: 11px; height: 11px; }
+.dia-post__canal { display: flex; align-items: center; gap: 6px; }
+.dia-post__canal .canal__logo { width: 15px; height: 15px; }
