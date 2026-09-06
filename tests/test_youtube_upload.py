@@ -160,3 +160,54 @@ class RunBatchMessagingTests(unittest.TestCase):
         self.assertEqual(result["enviados"], 0)
         self.assertIn("max_uploads=0", captured.getvalue())
         self.assertNotIn("nada pendente na fila", captured.getvalue())
+
+
+class PublishTimestampTests(unittest.TestCase):
+    """Publicação direta precisa carimbar a data: sem ela o post some da agenda."""
+
+    def _fila(self, tmp):
+        caminho = Path(tmp) / "fila.json"
+        save_queue(caminho, [{
+            "id": "clip_001", "status": "pendente", "estrela": False,
+            "arquivo": "v.mp4", "titulo": "T", "descricao": "d", "tags": [],
+        }])
+        return caminho
+
+    def _rodar(self, tmp, agendar):
+        from unittest.mock import patch
+
+        from youtube_upload import run_batch
+
+        caminho = self._fila(tmp)
+        (Path(tmp) / "v.mp4").write_bytes(b"v")
+        with patch("youtube_upload.upload_one", return_value="ABC123"):
+            run_batch(caminho, Path(tmp), "cred", "tok", 1, schedule=agendar)
+        return json.loads(caminho.read_text(encoding="utf-8"))[0]
+
+    def test_direct_publish_records_when(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            item = self._rodar(tmp, agendar=False)
+
+        self.assertEqual(item["status"], "publicado")
+        self.assertTrue(item["published_at"].endswith("Z"))
+        self.assertNotIn("publish_at", item)
+
+    def test_scheduled_publish_keeps_publish_at_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            item = self._rodar(tmp, agendar=True)
+
+        self.assertEqual(item["status"], "agendado")
+        self.assertTrue(item["publish_at"].endswith("Z"))
+        self.assertNotIn("published_at", item)
+
+    def test_timestamp_is_parseable_utc(self):
+        from datetime import datetime, timezone
+
+        with tempfile.TemporaryDirectory() as tmp:
+            item = self._rodar(tmp, agendar=False)
+
+        quando = datetime.strptime(item["published_at"], "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=timezone.utc
+        )
+        agora = datetime.now(timezone.utc)
+        self.assertLess(abs((agora - quando).total_seconds()), 60)

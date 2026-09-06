@@ -207,6 +207,12 @@ def run_batch(
         by_id[item["id"]]["video_id"] = video_id
         if publish_at:
             by_id[item["id"]]["publish_at"] = publish_at
+        else:
+            # Publicação direta não tem data marcada; sem registrar o instante,
+            # o post some do calendário — a agenda não teria onde colocá-lo.
+            by_id[item["id"]]["published_at"] = datetime.now(timezone.utc).strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            )
         by_id[item["id"]].pop("erro", None)
         enviados += 1
         save_queue(queue_path, queue)

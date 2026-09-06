@@ -450,8 +450,10 @@ function chaveData(data) {
 function agruparPorDia() {
   const mapa = new Map();
   for (const clip of state.clips) {
-    if (!clip.publish_at) continue;
-    const quando = new Date(clip.publish_at);
+    // Agendado usa a data marcada; publicado direto usa o instante do upload.
+    const carimbo = clip.publish_at || clip.published_at;
+    if (!carimbo) continue;
+    const quando = new Date(carimbo);
     if (Number.isNaN(quando.getTime())) continue;
     const chave = chaveData(quando);
     if (!mapa.has(chave)) mapa.set(chave, []);
@@ -477,9 +479,25 @@ function escolherDiaInicial(porDia) {
   agenda.mes = new Date(ano, mes - 1, 1);
 }
 
+/** Publicado antes de a data passar a ser registrada: existe, mas não tem
+    onde cair no calendário. Some em silêncio seria pior — o clipe apareceria
+    como "publicado" na lista e simplesmente não estaria na agenda. */
+function renderSemData() {
+  const orfaos = state.clips.filter(
+    (c) => c.upload_status === "publicado" && !c.publish_at && !c.published_at
+  );
+  const aviso = qs("agenda-sem-data");
+  aviso.hidden = orfaos.length === 0;
+  if (!orfaos.length) return;
+  aviso.textContent = orfaos.length === 1
+    ? "1 clipe publicado sem data registrada — não aparece no calendário."
+    : `${orfaos.length} clipes publicados sem data registrada — não aparecem no calendário.`;
+}
+
 function renderAgenda() {
   const porDia = agruparPorDia();
   escolherDiaInicial(porDia);
+  renderSemData();
   const referencia = agenda.mes;
   const ano = referencia.getFullYear();
   const mes = referencia.getMonth();

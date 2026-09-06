@@ -487,3 +487,15 @@
 .agenda__post .canal__logo { width: 11px; height: 11px; }
 .dia-post__canal { display: flex; align-items: center; gap: 6px; }
 .dia-post__canal .canal__logo { width: 15px; height: 15px; }
+
+/* Publicados antes de a data passar a ser registrada — visíveis como nota,
+   nunca omitidos em silêncio. */
+.agenda__aviso {
+  margin: var(--space-element) 0 0;
+  font-size: 0.6875rem; color: var(--fade);
+  display: flex; align-items: center; gap: 6px;
+}
+.agenda__aviso::before {
+  content: ''; width: 5px; height: 5px; border-radius: 500px;
+  background: var(--fade); flex: none;
+}

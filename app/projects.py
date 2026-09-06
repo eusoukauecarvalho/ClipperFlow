@@ -95,6 +95,7 @@ def load_clips(project_path: str) -> list[dict]:
                 "video_existe": bool(video_path and video_path.exists()),
                 "upload_status": queue_info.get("status", "nao_enfileirado"),
                 "publish_at": queue_info.get("publish_at", ""),
+                "published_at": queue_info.get("published_at", ""),
                 "video_id": queue_info.get("video_id", ""),
             }
         )
