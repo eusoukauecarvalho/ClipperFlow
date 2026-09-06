@@ -1,0 +1,308 @@
+/* =========================================================================
+   CLIPPER FLOW — só a COMPOSIÇÃO.
+   Todo o vocabulário (tokens, shell, dados, controles) vem da biblioteca em
+   ../lib/. Aqui mora exclusivamente o que é próprio desta ferramenta:
+   a grade de clipes 9:16, o log de job, o seletor de estilo de legenda,
+   a lista de horários e a prosa da documentação.
+   ========================================================================= */
+
+/* ---------- UTILITÁRIO QUE FALTA NA BIBLIOTECA ----------
+   O LEIA-ME dos templates cita `.sr-only` como vinda de base.css, mas ela não
+   está lá. Sem esta regra, todo rótulo de leitor de tela vira texto visível. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+/* ---------- O SHELL OCUPA A JANELA ----------
+   Na biblioteca .app é um card de catálogo (borda + raio + min-height).
+   Como app real ele é o documento inteiro. */
+.app {
+  min-height: 100vh;
+  border: 0;
+  border-radius: 0;
+}
+.app__aside { overflow-y: auto; }
+.app__conteudo { padding: var(--space-card) var(--space-card) var(--space-section); }
+.app__conteudo > .view { width: min(100%, 1040px); margin-inline: auto; }
+
+/* ---------- MARCA ---------- */
+.marca {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 10px var(--space-card);
+  margin: 0;
+}
+.marca__q {
+  width: 22px; height: 22px; flex: none;
+  border-radius: var(--r-campo);
+  background: var(--accent); color: var(--accent-ink);
+  display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 0.625rem; font-weight: 700;
+}
+.marca__nome {
+  font-size: 0.875rem; font-weight: 650; color: var(--ink);
+  letter-spacing: var(--tk-h3);
+}
+.app--colapsada .marca__nome { display: none; }
+
+/* Seletor de projeto no pé da lateral */
+.aside__pe {
+  margin-top: auto;
+  padding-top: var(--space-card);
+  display: grid; gap: 5px;
+}
+.app--colapsada .aside__pe { display: none; }
+
+/* ---------- CABEÇA DE VISTA ---------- */
+.vista__cabeca { margin-bottom: var(--space-card); }
+.vista__titulo {
+  font-size: 1.125rem; font-weight: 650; color: var(--ink);
+  letter-spacing: var(--tk-h3); margin: 0 0 3px;
+}
+.vista__sub { font-size: 0.8125rem; color: var(--muted); margin: 0; line-height: 1.5; }
+
+.view { display: none; }
+.view.is-ativa { display: block; }
+
+/* ---------- FAIXA DE KPI ---------- */
+.kpis {
+  display: grid; gap: var(--space-element);
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  margin-bottom: var(--space-card);
+}
+.kpis .card { padding: 12px 14px; }
+
+/* ---------- BARRA DE FERRAMENTAS ---------- */
+.ferramentas {
+  display: flex; align-items: center; gap: var(--space-element);
+  margin-bottom: var(--space-card); flex-wrap: wrap;
+}
+.ferramentas__espaco { flex: 1; }
+
+/* ---------- GRADE DE CLIPES ----------
+   9:16 porque todo corte desta ferramenta é vertical. */
+.clipes {
+  display: grid; gap: var(--space-element);
+  grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr));
+}
+.clipe {
+  display: flex; flex-direction: column;
+  background: var(--raised);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--r-card);
+  overflow: hidden; padding: 0; text-align: left;
+  font-family: var(--font-body); color: inherit;
+  transition: border-color var(--t-in) var(--ease);
+}
+.clipe:hover { border-color: var(--muted); }
+.clipe--abre { cursor: pointer; }
+.clipe__palco {
+  position: relative; aspect-ratio: 9 / 16;
+  background: var(--surface); overflow: hidden;
+}
+.clipe__palco img { width: 100%; height: 100%; object-fit: cover; }
+.clipe__estrela {
+  position: absolute; top: 7px; left: 7px; z-index: 2;
+  font-size: 13px; line-height: 1;
+  filter: drop-shadow(0 1px 3px oklch(0% 0 0 / 0.6));
+}
+/* O selo vive no ALTO: o rodapé do frame já é ocupado pela assinatura e pela
+   legenda queimadas no próprio vídeo — badge ali disputa espaço e some. */
+.clipe__selo { position: absolute; top: 7px; right: 7px; z-index: 2; }
+.clipe__selo .badge {
+  background: color-mix(in oklab, var(--void) 78%, transparent);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  border-color: color-mix(in oklab, currentColor 30%, transparent);
+  font-size: 0.625rem; padding: 3px 8px;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .clipe__selo .badge { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--void); }
+}
+.clipe__play {
+  position: absolute; inset: 0; z-index: 1; display: grid; place-items: center;
+  opacity: 0; transition: opacity var(--t-in) var(--ease);
+  background: color-mix(in oklab, var(--void) 40%, transparent);
+}
+.clipe--abre:hover .clipe__play,
+.clipe--abre:focus-visible .clipe__play { opacity: 1; }
+.clipe__play svg { width: 26px; height: 26px; stroke: var(--ink); fill: none; stroke-width: 1.6; }
+.clipe__corpo { padding: 9px 11px 11px; display: grid; gap: 5px; flex: 1; align-content: start; }
+.clipe__titulo {
+  font-size: 0.75rem; font-weight: 600; color: var(--ink);
+  line-height: 1.35; margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.clipe__meta {
+  font-family: var(--font-mono); font-size: 0.625rem; color: var(--fade);
+  font-variant-numeric: tabular-nums;
+}
+.clipe__score { margin-top: 4px; }
+
+/* ---------- LOG DE JOB ----------
+   Contrato de terminal: mono, denso, rolável. */
+.log {
+  margin: 0; padding: 12px 14px;
+  background: var(--surface);
+  border-radius: var(--r-campo);
+  border: var(--border-w) solid var(--border);
+  font-family: var(--font-mono); font-size: 0.6875rem; line-height: 1.65;
+  color: var(--muted);
+  max-height: 260px; overflow-y: auto;
+  white-space: pre-wrap; word-break: break-word;
+}
+.log:focus-visible { outline-offset: -2px; }
+
+/* ---------- SELETOR DE ESTILO DE LEGENDA ----------
+   Três opções mutuamente exclusivas com amostra visual: radio, não select. */
+.estilos { display: grid; gap: var(--space-element); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.estilo {
+  position: relative; display: grid; gap: 8px;
+  padding: 12px; cursor: pointer;
+  border: var(--border-w) solid var(--border-controle);
+  border-radius: var(--r-card);
+  background: var(--void);
+  transition: border-color var(--t-in) var(--ease), background-color var(--t-in) var(--ease);
+}
+.estilo:hover { border-color: var(--muted); }
+.estilo input { position: absolute; opacity: 0; width: 0; height: 0; }
+.estilo:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+}
+.estilo:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
+.estilo__nome { font-size: 0.8125rem; font-weight: 650; color: var(--ink); }
+.estilo:has(input:checked) .estilo__nome { color: var(--accent-texto); }
+.estilo__desc { font-size: 0.6875rem; color: var(--muted); line-height: 1.45; }
+
+/* Amostra: como a legenda aparece no vídeo */
+/* `display:grid` aqui fragmentava a amostra: com texto + <em> misturados, cada
+   trecho vira um item de grade e empilha em linhas. Centragem por padding
+   mantém o conteúdo inline como uma frase só. */
+.amostra-legenda {
+  min-height: 42px; border-radius: var(--r-campo);
+  background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6875rem; font-weight: 700;
+  padding: 8px; text-align: center; line-height: 1.35;
+}
+.amostra-legenda em { font-style: normal; }
+.amostra-legenda--bloco { color: var(--ink); }
+.amostra-legenda--karaoke { color: color-mix(in oklab, var(--ink) 45%, transparent); }
+.amostra-legenda--karaoke em { color: var(--ink); }
+.amostra-legenda--pop { color: var(--ink); font-size: 0.8125rem; }
+
+/* ---------- ASSINATURA ---------- */
+.assinatura {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.assinatura__previa {
+  width: 108px; height: 62px; flex: none;
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--r-campo);
+  background: var(--surface) center / contain no-repeat;
+}
+.assinatura__vazia {
+  display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 0.5625rem;
+  text-transform: uppercase; letter-spacing: var(--tk-micro);
+  color: var(--fade);
+}
+
+/* ---------- LINHA DE CAMPO ----------
+   Rótulo à esquerda, controle à direita — o padrão de tela de configuração. */
+.linha {
+  display: grid; grid-template-columns: 190px 1fr;
+  gap: var(--space-element) var(--space-card);
+  align-items: center;
+  padding: 11px 0;
+  border-bottom: var(--border-w) solid var(--border);
+}
+.linha:last-child { border-bottom: 0; }
+.linha__rotulo { display: grid; gap: 2px; }
+.linha__nome { font-size: var(--dens-texto); font-weight: 500; color: var(--ink); }
+.linha__ajuda { font-size: 0.6875rem; color: var(--fade); line-height: 1.4; }
+.linha__controle { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 620px) {
+  .linha { grid-template-columns: 1fr; }
+}
+
+/* Deslizante com valor lido ao lado */
+.desliza { flex: 1; min-width: 130px; accent-color: var(--accent); }
+.valor {
+  font-family: var(--font-mono); font-size: 0.6875rem;
+  color: var(--ink); background: var(--surface);
+  padding: 4px 8px; border-radius: var(--r-campo);
+  min-width: 52px; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- HORÁRIOS ---------- */
+.horarios { display: flex; gap: var(--space-element); flex-wrap: wrap; }
+.horario { display: flex; gap: 4px; align-items: center; }
+.horario .input { width: 92px; text-align: center; font-family: var(--font-mono); }
+
+/* ---------- CONECTOR ---------- */
+.conector__estado { display: grid; gap: 9px; }
+.conector__linha {
+  display: grid; grid-template-columns: 130px 1fr; gap: 12px;
+  font-size: var(--dens-texto); align-items: center;
+}
+.conector__chave { color: var(--fade); font-size: 0.75rem; }
+.conector__valor { color: var(--ink); }
+.conector__valor--mono { font-family: var(--font-mono); font-size: 0.75rem; word-break: break-all; }
+
+/* ---------- DOCUMENTAÇÃO ---------- */
+.doc-etapas { list-style: none; margin: 0; padding: 0; counter-reset: etapa; display: grid; gap: 2px; }
+.doc-etapa {
+  counter-increment: etapa;
+  display: grid; grid-template-columns: 26px 1fr; gap: 12px;
+  padding: 12px 0;
+  border-bottom: var(--border-w) solid var(--border);
+}
+.doc-etapa:last-child { border-bottom: 0; }
+.doc-etapa::before {
+  content: counter(etapa, decimal-leading-zero);
+  font-family: var(--font-mono); font-size: 0.625rem; font-weight: 600;
+  color: var(--fade); padding-top: 2px;
+}
+.doc-etapa__nome {
+  font-size: var(--dens-texto); font-weight: 650; color: var(--ink);
+  margin: 0 0 3px; letter-spacing: var(--tk-body);
+}
+.doc-etapa__texto { font-size: 0.8125rem; color: var(--muted); margin: 0; line-height: 1.55; }
+.doc-etapa__texto code {
+  color: var(--accent-texto);
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  padding: 1px 5px; border-radius: 4px;
+}
+
+.doc-regras { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.doc-regra {
+  display: grid; grid-template-columns: 14px 1fr; gap: 11px;
+  font-size: 0.8125rem; color: var(--muted); line-height: 1.55;
+}
+.doc-regra::before {
+  content: ''; width: 5px; height: 5px; border-radius: 500px;
+  background: var(--accent-texto); margin-top: 8px; margin-left: 4px;
+}
+.doc-regra b { color: var(--ink); font-weight: 600; }
+
+/* ---------- MODAL DE VÍDEO ---------- */
+.modal--video { width: min(100%, 330px); padding: 12px; gap: 10px; }
+.modal--video video {
+  width: 100%; border-radius: var(--r-campo); display: block;
+  background: oklch(0% 0 0); aspect-ratio: 9 / 16;
+}
+.modal__cabeca { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+
+/* ---------- SEÇÃO EM CARD ---------- */
+.bloco { margin-bottom: var(--space-card); }
+.bloco__titulo {
+  font-family: var(--font-mono); font-size: 0.5625rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: var(--tk-micro);
+  color: var(--fade); margin: 0 0 var(--space-element);
+}
+
+/* Botão dentro de card não deve esticar (a âncora é do componente) */
+.card .acao, .bloco .acao { align-self: flex-start; }

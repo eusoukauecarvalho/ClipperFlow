@@ -1,0 +1,312 @@
+/* =========================================================================
+   CONTROLES — o que o usuário opera: campos, ações, overlays, feedback.
+   Regra de motion desta categoria: 120–200ms em interação,
+   250–350ms em mudança de contexto. Nunca coreografia.
+   ========================================================================= */
+
+/* =========================================================================
+   1 · CAMPOS
+   ========================================================================= */
+.campo { display: grid; gap: 5px; width: 100%; text-align: left; }
+.campo__rotulo {
+  font-size: 0.75rem; font-weight: 500; color: var(--muted);
+  letter-spacing: var(--tk-body);
+}
+.campo__ajuda { font-size: 0.6875rem; color: var(--fade); line-height: 1.4; }
+.campo__erro {
+  font-size: 0.6875rem; color: var(--erro); display: flex; align-items: center; gap: 5px;
+  line-height: 1.4;
+}
+.campo__erro svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; flex: none; }
+
+.input, .select, .textarea {
+  width: 100%; font-family: var(--font-body); font-size: var(--dens-texto);
+  color: var(--ink); background: var(--void);
+  border: var(--border-w) solid var(--border-controle);
+  border-radius: var(--r-campo);
+  padding: 0 11px; height: var(--dens-campo);
+  letter-spacing: var(--tk-body);
+  transition: border-color var(--t-in) var(--ease), box-shadow var(--t-in) var(--ease);
+}
+.textarea { height: auto; min-height: 76px; padding: 9px 11px; line-height: 1.5; resize: vertical; }
+.input::placeholder, .textarea::placeholder { color: var(--fade); }
+.input:hover, .select:hover, .textarea:hover { border-color: var(--muted); }
+.input:focus-visible, .select:focus-visible, .textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 25%, transparent);
+}
+.input:disabled, .select:disabled { opacity: 0.5; cursor: not-allowed; }
+.input[aria-invalid="true"] { border-color: var(--erro); }
+.input[aria-invalid="true"]:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklab, var(--erro) 25%, transparent); }
+.campo:has(.input[data-valido="1"]) .campo__ok { opacity: 1; }
+
+.select {
+  appearance: none; cursor: pointer; padding-right: 30px;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.campo-icone { position: relative; display: block; }
+.campo-icone .input { padding-left: 32px; }
+.campo-icone > svg {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; stroke: var(--fade); fill: none; stroke-width: 1.7;
+  pointer-events: none;
+}
+
+/* Toggle */
+.toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
+.toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.toggle__trilho {
+  width: 34px; height: 20px; border-radius: 500px; flex: none;
+  background: var(--border-controle); position: relative;
+  border: var(--border-w) solid transparent;
+  transition: background-color var(--t-in) var(--ease);
+}
+.toggle__trilho::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; border-radius: 500px; background: var(--void);
+  transition: transform var(--t-in) var(--ease);
+}
+.toggle input:checked + .toggle__trilho { background: var(--accent); }
+.toggle input:checked + .toggle__trilho::after { transform: translateX(14px); background: var(--accent-ink); }
+.toggle input:focus-visible + .toggle__trilho { outline: 2px solid var(--accent); outline-offset: 3px; }
+.toggle__rotulo { font-size: var(--dens-texto); color: var(--ink); }
+
+/* Checkbox e radio — quadrado e círculo desenhados, não os nativos */
+.marcar { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; font-size: var(--dens-texto); color: var(--ink); }
+.marcar input { position: absolute; opacity: 0; width: 0; height: 0; }
+.marcar__caixa {
+  width: 16px; height: 16px; flex: none;
+  border: var(--border-w) solid var(--border-controle); border-radius: 4px;
+  background: var(--void); display: grid; place-items: center;
+  color: transparent;
+  transition: background-color var(--t-in) var(--ease), border-color var(--t-in) var(--ease);
+}
+.marcar--radio .marcar__caixa { border-radius: 500px; }
+.marcar__caixa svg { width: 10px; height: 10px; stroke: currentColor; stroke-width: 3; fill: none; }
+.marcar input:checked + .marcar__caixa { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.marcar input:focus-visible + .marcar__caixa { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* Segmentado — a alternativa ao select quando há 2 a 4 opções */
+.segmento {
+  display: inline-flex; padding: 3px; gap: 2px;
+  background: var(--surface); border: var(--border-w) solid var(--border);
+  border-radius: var(--r-campo);
+}
+.segmento button {
+  font-family: var(--font-body); font-size: 0.75rem; font-weight: 500;
+  padding: 5px 12px; border: 0; border-radius: calc(var(--r-campo) - 2px);
+  background: transparent; color: var(--muted); cursor: pointer;
+  transition: color var(--t-in) var(--ease), background-color var(--t-in) var(--ease);
+}
+.segmento button:hover { color: var(--ink); }
+.segmento button[aria-pressed="true"] { background: var(--raised); color: var(--ink); font-weight: 600;
+  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.08); }
+
+/* =========================================================================
+   2 · AÇÕES
+   ========================================================================= */
+.acao {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  height: var(--dens-campo); padding: 0 15px;
+  border-radius: var(--r-btn);
+  font-family: var(--font-body); font-size: var(--dens-texto); font-weight: 600;
+  letter-spacing: var(--tk-body); text-decoration: none;
+  border: var(--border-w) solid transparent; cursor: pointer;
+  white-space: nowrap; position: relative;
+  transition: background-color var(--t-in) var(--ease), border-color var(--t-in) var(--ease),
+              color var(--t-in) var(--ease), opacity var(--t-in) var(--ease);
+}
+.acao:hover { transition-duration: var(--t-out); }
+.acao:active { transform: translateY(0.5px); }
+.acao svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.9; flex: none; }
+.acao--primaria { background: var(--accent); color: var(--accent-ink); }
+.acao--primaria:hover { background: color-mix(in oklab, var(--accent) 88%, var(--ink)); }
+.acao--ghost { background: var(--void); color: var(--ink); border-color: var(--border-controle); }
+.acao--ghost:hover { border-color: var(--muted); background: var(--surface); }
+.acao--sutil { background: transparent; color: var(--muted); }
+.acao--sutil:hover { background: color-mix(in oklab, var(--ink) 7%, transparent); color: var(--ink); }
+.acao--destrutiva { background: transparent; color: var(--erro); border-color: color-mix(in oklab, var(--erro) 68%, var(--border)); }
+.acao--destrutiva:hover { background: color-mix(in oklab, var(--erro) 12%, transparent); }
+.acao--icone { width: var(--dens-campo); padding: 0; }
+.acao:disabled { opacity: 0.45; cursor: not-allowed; }
+/* Coluna flex/grid com stretch estica o botão até a largura toda. A âncora
+   é o próprio componente, não quem o embala — mesma regra do badge. */
+.acao { align-self: flex-start; justify-self: start; }
+.modal__pe .acao, .ficha__palco > .acao { align-self: auto; }
+.acao--pequena { height: 28px; padding: 0 10px; font-size: 0.75rem; }
+.acao--pequena.acao--icone { width: 28px; }
+
+/* Estado de carregando: o rótulo NÃO some — só ganha o giro. Trocar o texto
+   por "..." faz o botão mudar de largura e o cursor perde o alvo. */
+.acao[data-carregando="1"] { pointer-events: none; color: transparent; }
+.acao[data-carregando="1"]::after {
+  content: ''; position: absolute; inset: 0; margin: auto;
+  width: 14px; height: 14px; border-radius: 500px;
+  border: 2px solid color-mix(in oklab, currentColor 30%, transparent);
+  border-top-color: var(--accent-ink);
+  animation: girar 620ms linear infinite;
+}
+.acao--ghost[data-carregando="1"]::after { border-top-color: var(--ink); }
+@keyframes girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .acao[data-carregando="1"]::after { animation-duration: 2.4s; } }
+
+/* Split button */
+.split { display: inline-flex; }
+.split .acao:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.split .acao:last-child {
+  border-top-left-radius: 0; border-bottom-left-radius: 0; width: 30px; padding: 0;
+  border-left: var(--border-w) solid color-mix(in oklab, var(--accent-ink) 25%, transparent);
+}
+
+/* Menu suspenso */
+.menu { position: relative; display: inline-block; }
+.menu__lista {
+  position: absolute; top: calc(100% + 5px); right: 0; z-index: 20;
+  min-width: 172px; padding: 5px;
+  background: var(--raised); border: var(--border-w) solid var(--border);
+  border-radius: var(--r-card); box-shadow: var(--elev-overlay);
+  list-style: none; margin: 0;
+}
+.menu__lista[hidden] { display: none; }
+.menu__item {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 7px 9px; border-radius: var(--r-campo);
+  background: transparent; border: 0; cursor: pointer;
+  font-family: var(--font-body); font-size: 0.8125rem; color: var(--muted); text-align: left;
+}
+.menu__item:hover, .menu__item:focus-visible { background: color-mix(in oklab, var(--ink) 7%, transparent); color: var(--ink); outline: none; }
+.menu__item svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.8; flex: none; }
+.menu__item--perigo { color: var(--erro); }
+.menu__item .tecla { margin-left: auto; }
+.menu__sep { height: var(--border-w); background: var(--border); margin: 4px 0; }
+
+/* =========================================================================
+   3 · OVERLAYS
+   ========================================================================= */
+.scrim {
+  position: fixed; inset: 0; z-index: 200;
+  background: oklch(0% 0 0 / 0.5);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  display: grid; place-items: center; padding: var(--space-card);
+}
+.scrim[hidden] { display: none; }
+
+.modal {
+  width: min(100%, 420px);
+  background: var(--raised); border: var(--border-w) solid var(--border);
+  border-radius: var(--r-card); box-shadow: var(--elev-overlay);
+  padding: var(--space-card); display: grid; gap: 12px;
+}
+.modal__titulo { font-size: 1rem; font-weight: 650; color: var(--ink); margin: 0; letter-spacing: var(--tk-h3); }
+.modal__texto { font-size: 0.8125rem; color: var(--muted); margin: 0; line-height: 1.55; }
+.modal__pe { display: flex; gap: 8px; justify-content: flex-end; padding-top: 4px; flex-wrap: wrap; }
+
+/* Drawer — entra pela direita; 280ms, a faixa de mudança de contexto */
+.drawer-scrim { position: absolute; inset: 0; z-index: 30; background: oklch(0% 0 0 / 0.45); }
+.drawer-scrim[hidden] { display: none; }
+.drawer {
+  position: absolute; top: 0; right: 0; bottom: 0; z-index: 31;
+  width: min(88%, 300px);
+  background: var(--raised); border-left: var(--border-w) solid var(--border);
+  padding: var(--space-card); display: flex; flex-direction: column; gap: 12px;
+  box-shadow: var(--elev-overlay);
+}
+.drawer[hidden] { display: none; }
+.drawer__cabeca { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* Popover / tooltip */
+.dica { position: relative; display: inline-flex; }
+.dica__balao {
+  position: absolute; bottom: calc(100% + 7px); left: 50%; translate: -50% 0;
+  background: var(--ink); color: var(--void);
+  font-size: 0.6875rem; font-weight: 500; padding: 5px 9px; border-radius: 5px;
+  white-space: nowrap; pointer-events: none; z-index: 20;
+  opacity: 0; transform: translateY(3px);
+  transition: opacity var(--t-in) var(--ease), transform var(--t-in) var(--ease);
+}
+.dica:hover .dica__balao, .dica:focus-within .dica__balao { opacity: 1; transform: translateY(0); }
+
+/* Toast — a confirmação que não bloqueia */
+.toasts {
+  position: fixed; right: var(--gutter); bottom: var(--gutter); z-index: 400;
+  display: grid; gap: 8px; justify-items: end; pointer-events: none;
+}
+.toast {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; border-radius: var(--r-card);
+  background: var(--raised); border: var(--border-w) solid var(--border);
+  box-shadow: var(--elev-overlay);
+  font-size: 0.8125rem; color: var(--ink); pointer-events: auto;
+  max-width: 320px;
+}
+.toast svg { width: 15px; height: 15px; flex: none; stroke-width: 2; fill: none; }
+.toast--ok svg { stroke: var(--ok); }
+.toast--erro svg { stroke: var(--erro); }
+.toast button {
+  background: none; border: 0; color: var(--accent-texto); cursor: pointer;
+  font-family: var(--font-body); font-size: 0.75rem; font-weight: 600; margin-left: auto;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+
+/* Zona de perigo — a confirmação destrutiva exige digitar o nome */
+.perigo {
+  border: var(--border-w) solid color-mix(in oklab, var(--erro) 68%, var(--border));
+  border-radius: var(--r-card); padding: var(--space-card);
+  display: grid; gap: 10px;
+}
+.perigo__titulo { font-size: 0.8125rem; font-weight: 600; color: var(--erro); margin: 0; }
+
+/* =========================================================================
+   4 · FEEDBACK E MOTION FUNCIONAL
+   ========================================================================= */
+
+/* Microinteração de sucesso: 120ms de resposta + o traço do check.
+   O botão confirma sozinho, sem esperar toast. */
+.confirma { position: relative; overflow: hidden; }
+.confirma__check { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; }
+.confirma__check svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2.6; fill: none; }
+
+/* Barra de progresso determinada — quando há total conhecido.
+   Marca FINA de UI usa --accent-texto, não --accent: no Brutalist o ácido
+   de preenchimento dá 1.15:1 contra o canvas e a barra some. Medido. */
+/* O trilho é um véu do próprio tinta sobre o fundo — assim ele funciona nos
+   dois temas E mantém distância do preenchimento. Usar --border-controle
+   fazia a barra sumir no Brutalist escuro (1.02:1, medido). */
+.progresso { height: 5px; border-radius: 5px; background: color-mix(in oklab, var(--ink) 16%, transparent); overflow: hidden; width: 100%; }
+/* clip-path em vez de width: anima sem layout e preserva o raio da ponta. */
+.progresso i { display: block; height: 100%; width: 100%; background: var(--accent-texto); border-radius: 5px;
+  clip-path: inset(0 calc(100% - var(--p, 0%)) 0 0 round 5px);
+  transition: clip-path var(--t-painel) var(--ease); }
+
+/* Progresso indeterminado — quando NÃO há total. Só aqui o spinner cabe. */
+.progresso--indet i { width: 34%; clip-path: none; animation: correr 1.15s ease-in-out infinite; }
+@keyframes correr { 0% { margin-left: -34%; } 100% { margin-left: 100%; } }
+
+/* Tabela de motion — a régua da categoria */
+.regua { width: 100%; display: grid; gap: 8px; }
+.regua__linha { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+  font-size: 0.75rem; color: var(--muted); }
+.regua__trilho { height: 22px; border-radius: 4px; background: var(--surface); position: relative; overflow: hidden;
+  border: var(--border-w) solid var(--border); }
+.regua__bola { position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 4px; background: var(--accent-texto); }
+.regua__ms { font-family: var(--font-mono); font-size: 0.625rem; color: var(--fade); }
+
+/* Foco visível — a demonstração lado a lado */
+.foco-demo { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.foco-demo .ruim:focus-visible { outline: none; box-shadow: none; }
+
+/* Lista navegável por teclado (roving tabindex) */
+.lista-teclado { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 2px; }
+.lista-teclado li {
+  padding: 8px 10px; border-radius: var(--r-campo);
+  font-size: var(--dens-texto); color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; gap: 9px;
+}
+.lista-teclado li:focus-visible { outline: none; background: color-mix(in oklab, var(--accent) 16%, transparent); color: var(--accent-texto); }
+.lista-teclado li[aria-selected="true"] { color: var(--ink); font-weight: 600; }

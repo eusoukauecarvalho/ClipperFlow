@@ -1,293 +1,508 @@
-<!doctype html>
-<html lang="pt-BR">
+<!DOCTYPE html>
+<html lang="pt-BR" data-direcao="softtech" data-tema="escuro" data-densidade="confortavel">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clipper Flow</title>
-<link rel="stylesheet" href="/static/style.css">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='5' y='4' width='22' height='24' rx='3' fill='none' stroke='%23888' stroke-width='2.5'/><path d='M11 4v24M21 4v24' stroke='%23888' stroke-width='2.5'/></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..900&family=Spline+Sans+Mono:wght@400;600&display=swap">
+
+<!-- Vocabulário: biblioteca do design system (APP WEB/BIBLIOTECA) -->
+<link rel="stylesheet" href="/static/lib/tokens.css">
+<link rel="stylesheet" href="/static/lib/base.css">
+<link rel="stylesheet" href="/static/lib/shell.css">
+<link rel="stylesheet" href="/static/lib/dados.css">
+<link rel="stylesheet" href="/static/lib/controles.css">
+<!-- Só a composição desta ferramenta -->
+<link rel="stylesheet" href="/static/clipper.css">
 </head>
 <body>
-<div class="shell">
-  <nav class="side">
-    <h1>🎬 Clipper Flow</h1>
-    <p class="sub">Painel local</p>
 
-    <button data-view="new" class="nav-btn">➕ Novo Corte</button>
-    <button data-view="clips" class="nav-btn active">📼 Clips</button>
-    <button data-view="queue" class="nav-btn">📤 Fila &amp; Agendamento</button>
-    <button data-view="style" class="nav-btn">🎨 Estilo</button>
-    <button data-view="settings" class="nav-btn">⚙️ Horários</button>
-    <button data-view="connectors" class="nav-btn">🔌 Conectores</button>
-    <button data-view="docs" class="nav-btn">📚 Documentação</button>
+<a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
-    <div class="project-picker">
-      <label class="field-label">Projeto</label>
-      <select id="project-select"></select>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="i-mais"><path d="M8 3v10M3 8h10"/></g>
+  <g id="i-filme"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M5.5 3v10M10.5 3v10"/></g>
+  <g id="i-upload"><path d="M8 11V3M5 6l3-3 3 3"/><path d="M2.5 11v1.5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V11"/></g>
+  <g id="i-paleta"><circle cx="8" cy="8" r="5.5"/><circle cx="6" cy="6.2" r=".9"/><circle cx="10" cy="6.2" r=".9"/><circle cx="8" cy="10.4" r=".9"/></g>
+  <g id="i-relogio"><circle cx="8" cy="8" r="5.5"/><path d="M8 4.8V8l2.2 1.6"/></g>
+  <g id="i-plug"><path d="M6 2.5v4M10 2.5v4M4.5 6.5h7v2a3.5 3.5 0 0 1-7 0z"/><path d="M8 12v2"/></g>
+  <g id="i-livro"><path d="M3 3.5h4a2 2 0 0 1 2 2v8a1.6 1.6 0 0 0-1.6-1.6H3z"/><path d="M13 3.5H9a2 2 0 0 0-2 2v8a1.6 1.6 0 0 1 1.6-1.6H13z"/></g>
+  <g id="i-menu"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/></g>
+  <g id="i-play"><path d="M5.5 3.5 12 8l-6.5 4.5z"/></g>
+  <g id="i-check"><path d="m3 8.5 3.5 3.5L13 4.5"/></g>
+  <g id="i-x"><path d="M4 4l8 8M12 4l-8 8"/></g>
+  <g id="i-alerta"><path d="M8 2.5 14.5 13.5h-13z"/><path d="M8 6.5v3M8 11.6v.01"/></g>
+</defs></svg>
+
+<div class="app" id="app">
+
+  <nav class="app__aside" aria-label="Navegação principal">
+    <p class="marca">
+      <span class="marca__q" aria-hidden="true">CF</span>
+      <span class="marca__nome">Clipper Flow</span>
+    </p>
+
+    <button class="nav-item" type="button" data-view="new">
+      <svg class="nav-item__icone"><use href="#i-mais"/></svg>
+      <span class="nav-item__rotulo">Novo corte</span>
+    </button>
+    <button class="nav-item" type="button" data-view="clips" aria-current="page">
+      <svg class="nav-item__icone"><use href="#i-filme"/></svg>
+      <span class="nav-item__rotulo">Clipes</span>
+      <span class="nav-item__contagem" id="nav-contagem-clipes"></span>
+    </button>
+    <button class="nav-item" type="button" data-view="queue">
+      <svg class="nav-item__icone"><use href="#i-upload"/></svg>
+      <span class="nav-item__rotulo">Publicação</span>
+      <span class="nav-item__contagem" id="nav-contagem-fila"></span>
+    </button>
+
+    <p class="nav-grupo">Configuração</p>
+    <button class="nav-item" type="button" data-view="style">
+      <svg class="nav-item__icone"><use href="#i-paleta"/></svg>
+      <span class="nav-item__rotulo">Estilo</span>
+    </button>
+    <button class="nav-item" type="button" data-view="settings">
+      <svg class="nav-item__icone"><use href="#i-relogio"/></svg>
+      <span class="nav-item__rotulo">Horários</span>
+    </button>
+    <button class="nav-item" type="button" data-view="connectors">
+      <svg class="nav-item__icone"><use href="#i-plug"/></svg>
+      <span class="nav-item__rotulo">Conectores</span>
+    </button>
+    <button class="nav-item" type="button" data-view="docs">
+      <svg class="nav-item__icone"><use href="#i-livro"/></svg>
+      <span class="nav-item__rotulo">Documentação</span>
+    </button>
+
+    <div class="aside__pe">
+      <label class="campo">
+        <span class="campo__rotulo">Projeto</span>
+        <select class="select" id="project-select"></select>
+      </label>
     </div>
   </nav>
 
-  <main>
-
-    <section id="view-new" class="view">
-      <h2 class="view-title">Novo Corte</h2>
-      <p class="view-sub">Aponta o vídeo bruto → transcreve e propõe cortes → você revisa → renderiza.</p>
-
-      <div class="panel">
-        <h3>1. Vídeo de origem</h3>
-        <div class="field-row">
-          <label>Arquivo</label>
-          <div class="control">
-            <select id="source-video-select" style="flex:1"></select>
-            <button class="btn" id="source-video-refresh">Atualizar lista</button>
-          </div>
-        </div>
-        <div class="field-row">
-          <label>Pasta de saída</label>
-          <div class="control">
-            <input type="text" id="output-dir" style="flex:1">
-          </div>
-        </div>
-        <div class="field-row">
-          <label>Idioma</label>
-          <div class="control">
-            <input type="text" id="new-language" value="pt" style="width:60px">
-          </div>
-        </div>
-        <div class="field-row">
-          <label>Duração dos cortes (s)</label>
-          <div class="control">
-            <input type="number" id="new-min-duration" value="2" style="width:70px"> até
-            <input type="number" id="new-max-duration" value="90" style="width:70px">
-          </div>
-        </div>
-        <button class="btn primary" id="dry-run-btn">Transcrever e propor cortes</button>
+  <div class="app__main">
+    <div class="app__topo">
+      <button class="acao acao--sutil acao--icone acao--pequena" data-colapso type="button" aria-label="Alternar navegação">
+        <svg><use href="#i-menu"/></svg>
+      </button>
+      <h1 class="app__titulo" id="topo-titulo">Clipes</h1>
+      <div class="seg" role="group" aria-label="Tema" style="margin-left:auto">
+        <button type="button" data-tema="escuro" aria-pressed="true">Escuro</button>
+        <button type="button" data-tema="claro" aria-pressed="false">Claro</button>
       </div>
+    </div>
 
-      <div class="panel" id="job-panel" style="display:none">
-        <h3 id="job-title">Processando...</h3>
-        <pre id="job-log" style="max-height:280px; overflow:auto; font-size:11.5px; background:var(--surface-sunk); padding:12px; border-radius:8px; margin:0"></pre>
-        <div id="job-actions" style="margin-top:12px"></div>
-      </div>
-    </section>
+    <main class="app__conteudo" id="conteudo">
 
-    <section id="view-clips" class="view active">
-      <h2 class="view-title">Clips</h2>
-      <p class="view-sub">Cortes gerados neste projeto, com status real de publicação.</p>
-      <div class="stats-row" id="clips-stats"></div>
-      <div class="toolbar">
-        <select id="clips-filter">
-          <option value="todos">Todos os status</option>
-          <option value="pendente">Pendentes</option>
-          <option value="agendado">Agendados</option>
-          <option value="publicado">Publicados</option>
-        </select>
-        <select id="clips-sort">
-          <option value="ordem">Ordem original</option>
-          <option value="score">Maior score</option>
-        </select>
-        <span class="grow"></span>
-        <button class="btn" id="clips-refresh">Atualizar</button>
-      </div>
-      <div class="clip-grid" id="clip-grid"></div>
-    </section>
+      <!-- ===================== NOVO CORTE ===================== -->
+      <section class="view" id="view-new">
+        <div class="vista__cabeca">
+          <h2 class="vista__titulo">Novo corte</h2>
+          <p class="vista__sub">Aponte o vídeo bruto, transcreva e proponha os cortes. Você revisa antes de renderizar.</p>
+        </div>
 
-    <section id="view-queue" class="view">
-      <h2 class="view-title">Fila &amp; Agendamento</h2>
-      <p class="view-sub">Publica direto no YouTube usando as credenciais e horários configurados.</p>
-      <div class="stats-row" id="queue-stats"></div>
-      <div class="panel">
-        <h3>Publicar próximo lote</h3>
-        <div class="field-row">
-          <label>Quantidade</label>
-          <div class="control">
-            <input type="number" id="publish-count" value="4" min="1" max="20" style="width:80px">
-            <span class="field-hint">clips pendentes, priorizando os ⭐</span>
+        <div class="card bloco">
+          <p class="bloco__titulo">1 · Origem</p>
+          <div class="linha">
+            <span class="linha__rotulo">
+              <span class="linha__nome">Vídeo</span>
+              <span class="linha__ajuda">Arquivos grandes em Documentos, Filmes e Área de Trabalho.</span>
+            </span>
+            <span class="linha__controle">
+              <select class="select" id="source-video-select" style="flex:1;min-width:180px"></select>
+              <button class="acao acao--ghost acao--pequena" type="button" id="source-video-refresh">Atualizar</button>
+            </span>
+          </div>
+          <div class="linha">
+            <span class="linha__rotulo"><span class="linha__nome">Pasta de saída</span></span>
+            <span class="linha__controle">
+              <input class="input" type="text" id="output-dir" style="flex:1">
+            </span>
+          </div>
+          <div class="linha">
+            <span class="linha__rotulo">
+              <span class="linha__nome">Duração dos cortes</span>
+              <span class="linha__ajuda">Mínimo e máximo, em segundos.</span>
+            </span>
+            <span class="linha__controle">
+              <input class="input" type="number" id="new-min-duration" value="2" style="width:78px">
+              <span style="color:var(--fade);font-size:.75rem">até</span>
+              <input class="input" type="number" id="new-max-duration" value="90" style="width:78px">
+            </span>
+          </div>
+          <div class="linha">
+            <span class="linha__rotulo"><span class="linha__nome">Idioma</span></span>
+            <span class="linha__controle">
+              <input class="input" type="text" id="new-language" value="pt" style="width:78px">
+            </span>
+          </div>
+          <div style="padding-top:var(--space-card)">
+            <button class="acao acao--primaria" type="button" id="dry-run-btn">Transcrever e propor cortes</button>
           </div>
         </div>
-        <div class="field-row">
-          <label>Modo</label>
-          <div class="control">
-            <div class="toggle on" id="publish-schedule-toggle"><div class="knob"></div></div>
-            <span class="field-hint" id="publish-schedule-label">Agendar nos horários configurados</span>
+
+        <div class="card bloco" id="job-panel" hidden>
+          <div class="card__cabeca">
+            <h3 class="card__titulo" id="job-title">Processando…</h3>
+            <span class="badge badge--info" id="job-badge">em curso</span>
+          </div>
+          <pre class="log" id="job-log" tabindex="0"></pre>
+          <div id="job-actions" style="padding-top:12px"></div>
+        </div>
+      </section>
+
+      <!-- ===================== CLIPES ===================== -->
+      <section class="view is-ativa" id="view-clips">
+        <div class="vista__cabeca">
+          <h2 class="vista__titulo">Clipes</h2>
+          <p class="vista__sub">Cortes deste projeto, com o status real de publicação.</p>
+        </div>
+
+        <div class="kpis" id="clips-kpis"></div>
+
+        <div class="ferramentas">
+          <label class="campo" style="width:auto">
+            <span class="sr-only">Filtrar por status</span>
+            <select class="select" id="clips-filter" style="width:auto">
+              <option value="todos">Todos os status</option>
+              <option value="pendente">Pendentes</option>
+              <option value="agendado">Agendados</option>
+              <option value="publicado">Publicados</option>
+            </select>
+          </label>
+          <label class="campo" style="width:auto">
+            <span class="sr-only">Ordenar</span>
+            <select class="select" id="clips-sort" style="width:auto">
+              <option value="ordem">Ordem do episódio</option>
+              <option value="score">Maior score</option>
+            </select>
+          </label>
+          <span class="ferramentas__espaco"></span>
+          <button class="acao acao--ghost acao--pequena" type="button" id="clips-refresh">Atualizar</button>
+        </div>
+
+        <div class="clipes" id="clip-grid"></div>
+      </section>
+
+      <!-- ===================== PUBLICAÇÃO ===================== -->
+      <section class="view" id="view-queue">
+        <div class="vista__cabeca">
+          <h2 class="vista__titulo">Publicação</h2>
+          <p class="vista__sub">Sobe para o YouTube com agendamento nativo — o vídeo vai privado e publica sozinho na hora marcada.</p>
+        </div>
+
+        <div class="kpis" id="queue-kpis"></div>
+
+        <div class="card bloco">
+          <p class="bloco__titulo">Próximo lote</p>
+          <div class="linha">
+            <span class="linha__rotulo">
+              <span class="linha__nome">Quantidade</span>
+              <span class="linha__ajuda">Pendentes, priorizando os marcados com ⭐.</span>
+            </span>
+            <span class="linha__controle">
+              <input class="input" type="number" id="publish-count" value="4" min="1" max="20" style="width:86px">
+            </span>
+          </div>
+          <div class="linha">
+            <span class="linha__rotulo">
+              <span class="linha__nome">Agendar</span>
+              <span class="linha__ajuda">Desligado, sobe como privado sem data.</span>
+            </span>
+            <span class="linha__controle">
+              <label class="toggle">
+                <input type="checkbox" id="publish-schedule" checked>
+                <span class="toggle__trilho"></span>
+                <span class="toggle__rotulo" id="publish-schedule-label">Nos horários configurados</span>
+              </label>
+            </span>
+          </div>
+          <div style="padding-top:var(--space-card)">
+            <button class="acao acao--primaria" type="button" id="publish-btn">Publicar lote</button>
+          </div>
+          <pre class="log" id="publish-result" hidden tabindex="0"></pre>
+        </div>
+
+        <div class="card">
+          <p class="bloco__titulo">Fila completa</p>
+          <div class="tabela-caixa" tabindex="0">
+            <table class="tabela">
+              <thead>
+                <tr>
+                  <th scope="col">Clipe</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Publica em</th>
+                  <th scope="col">ID</th>
+                </tr>
+              </thead>
+              <tbody id="queue-table-body"></tbody>
+            </table>
           </div>
         </div>
-        <button class="btn primary" id="publish-btn">Publicar lote</button>
-        <div id="publish-result" style="margin-top:12px; font-size:12.5px; white-space:pre-wrap; font-family: ui-monospace, monospace; color: var(--ink-soft2);"></div>
-      </div>
-      <div class="panel">
-        <h3>Fila completa</h3>
-        <table class="queue">
-          <thead><tr><th>Clip</th><th>Status</th><th>Publica em</th><th>Video ID</th></tr></thead>
-          <tbody id="queue-table-body"></tbody>
-        </table>
-      </div>
-    </section>
+      </section>
 
-    <section id="view-style" class="view">
-      <h2 class="view-title">Estilo</h2>
-      <p class="view-sub">Aplicado nos próximos renders. Não afeta clips já queimados.</p>
+      <!-- ===================== ESTILO ===================== -->
+      <section class="view" id="view-style">
+        <div class="vista__cabeca">
+          <h2 class="vista__titulo">Estilo</h2>
+          <p class="vista__sub">Vale para os próximos renders. Clipes já queimados não mudam.</p>
+        </div>
 
-      <div class="panel">
-        <h3>Legenda</h3>
-        <div class="style-preview" id="style-options">
-          <div class="style-option" data-style="block">
-            <span class="label">Bloco</span>
-            <span class="desc">Frase inteira, estática</span>
+        <div class="card bloco">
+          <p class="bloco__titulo">Legenda</p>
+          <div class="estilos" id="style-options">
+            <label class="estilo">
+              <input type="radio" name="subtitle-style" value="block">
+              <span class="amostra-legenda amostra-legenda--bloco"><span>a frase inteira aparece</span></span>
+              <span class="estilo__nome">Bloco</span>
+              <span class="estilo__desc">Frase completa, estática. Leitura confortável.</span>
+            </label>
+            <label class="estilo">
+              <input type="radio" name="subtitle-style" value="karaoke">
+              <span class="amostra-legenda amostra-legenda--karaoke"><span>a frase <em>inteira</em> aparece</span></span>
+              <span class="estilo__nome">Karaokê</span>
+              <span class="estilo__desc">Frase apagada, palavra falada acesa.</span>
+            </label>
+            <label class="estilo">
+              <input type="radio" name="subtitle-style" value="pop">
+              <span class="amostra-legenda amostra-legenda--pop"><span>inteira</span></span>
+              <span class="estilo__nome">Pop</span>
+              <span class="estilo__desc">Só a palavra do momento. Mais dinâmico.</span>
+            </label>
           </div>
-          <div class="style-option" data-style="karaoke">
-            <span class="label">Karaokê</span>
-            <span class="desc">Frase apagada, palavra acesa</span>
-          </div>
-          <div class="style-option" data-style="pop">
-            <span class="label">Pop</span>
-            <span class="desc">Só a palavra falada</span>
+          <div class="linha" style="margin-top:var(--space-card)">
+            <span class="linha__rotulo">
+              <span class="linha__nome">Tamanho do texto</span>
+              <span class="linha__ajuda">Proporcional à largura do vídeo.</span>
+            </span>
+            <span class="linha__controle">
+              <input class="desliza" type="range" id="subtitle-size" min="0.04" max="0.12" step="0.001">
+              <span class="valor" id="subtitle-size-val"></span>
+            </span>
           </div>
         </div>
-        <div class="field-row" style="margin-top:16px">
-          <label>Tamanho do texto</label>
-          <div class="control">
-            <input type="range" id="subtitle-size" min="0.04" max="0.12" step="0.001">
-            <span class="value-pill" id="subtitle-size-val"></span>
+
+        <div class="card bloco">
+          <p class="bloco__titulo">Assinatura</p>
+          <div class="assinatura">
+            <span class="assinatura__previa assinatura__vazia" id="sig-preview">sem imagem</span>
+            <div style="display:grid;gap:6px">
+              <input type="file" id="sig-file" accept="image/png" style="font-size:.75rem;color:var(--muted)">
+              <span class="campo__ajuda">PNG transparente, fixado no rodapé de todo clipe.</span>
+            </div>
+          </div>
+          <div class="linha" style="margin-top:var(--space-card)">
+            <span class="linha__rotulo"><span class="linha__nome">Tamanho</span></span>
+            <span class="linha__controle">
+              <input class="desliza" type="range" id="signature-size" min="0.2" max="0.9" step="0.01">
+              <span class="valor" id="signature-size-val"></span>
+            </span>
           </div>
         </div>
-      </div>
 
-      <div class="panel">
-        <h3>Assinatura</h3>
-        <div class="field-row">
-          <label>Imagem (PNG)</label>
-          <div class="control">
-            <div class="sig-preview" id="sig-preview"></div>
-            <div>
-              <input type="file" id="sig-file" accept="image/png" style="font-size:12px">
-              <div class="field-hint">Fixada no rodapé de todo clip.</div>
+        <div class="card bloco">
+          <p class="bloco__titulo">Zoom</p>
+          <div class="linha">
+            <span class="linha__rotulo">
+              <span class="linha__nome">Ativado</span>
+              <span class="linha__ajuda">Aproximação lenta que entra, pausa e volta.</span>
+            </span>
+            <span class="linha__controle">
+              <label class="toggle">
+                <input type="checkbox" id="zoom-enabled">
+                <span class="toggle__trilho"></span>
+                <span class="toggle__rotulo">Zoom no vídeo</span>
+              </label>
+            </span>
+          </div>
+          <div id="zoom-fields">
+            <div class="linha">
+              <span class="linha__rotulo">
+                <span class="linha__nome">Amplitude</span>
+                <span class="linha__ajuda">Quanto a imagem aproxima no total.</span>
+              </span>
+              <span class="linha__controle">
+                <input class="desliza" type="range" id="zoom-amplitude" min="0.02" max="0.3" step="0.01">
+                <span class="valor" id="zoom-amplitude-val"></span>
+              </span>
+            </div>
+            <div class="linha">
+              <span class="linha__rotulo"><span class="linha__nome">Transição</span></span>
+              <span class="linha__controle">
+                <input class="desliza" type="range" id="zoom-transition" min="1" max="10" step="0.5">
+                <span class="valor" id="zoom-transition-val"></span>
+              </span>
+            </div>
+            <div class="linha">
+              <span class="linha__rotulo">
+                <span class="linha__nome">Pausa automática</span>
+                <span class="linha__ajuda">5s em clipe até 30s, 20s acima.</span>
+              </span>
+              <span class="linha__controle">
+                <label class="toggle">
+                  <input type="checkbox" id="zoom-hold-auto">
+                  <span class="toggle__trilho"></span>
+                  <span class="toggle__rotulo">Derivar da duração</span>
+                </label>
+              </span>
+            </div>
+            <div class="linha" id="zoom-hold-manual-row">
+              <span class="linha__rotulo"><span class="linha__nome">Pausa fixa</span></span>
+              <span class="linha__controle">
+                <input class="desliza" type="range" id="zoom-hold" min="0" max="30" step="1">
+                <span class="valor" id="zoom-hold-val"></span>
+              </span>
             </div>
           </div>
         </div>
-        <div class="field-row">
-          <label>Tamanho</label>
-          <div class="control">
-            <input type="range" id="signature-size" min="0.2" max="0.9" step="0.01">
-            <span class="value-pill" id="signature-size-val"></span>
+
+        <button class="acao acao--primaria" type="button" id="style-save">Salvar estilo</button>
+      </section>
+
+      <!-- ===================== HORÁRIOS ===================== -->
+      <section class="view" id="view-settings">
+        <div class="vista__cabeca">
+          <h2 class="vista__titulo">Horários de publicação</h2>
+          <p class="vista__sub">Um clipe por horário, todo dia, no fuso de Brasília. A madrugada pertence ao dia que começa.</p>
+        </div>
+
+        <div class="card bloco">
+          <p class="bloco__titulo">Slots diários</p>
+          <div class="horarios" id="slot-list"></div>
+          <div style="padding-top:var(--space-card)">
+            <button class="acao acao--ghost acao--pequena" type="button" id="slot-add">
+              <svg><use href="#i-mais"/></svg> Adicionar horário
+            </button>
           </div>
         </div>
-      </div>
 
-      <div class="panel">
-        <h3>Zoom (Ken Burns)</h3>
-        <div class="field-row">
-          <label>Ativado</label>
-          <div class="control">
-            <div class="toggle" id="zoom-toggle"><div class="knob"></div></div>
-          </div>
+        <button class="acao acao--primaria" type="button" id="settings-save">Salvar horários</button>
+      </section>
+
+      <!-- ===================== CONECTORES ===================== -->
+      <section class="view" id="view-connectors">
+        <div class="vista__cabeca">
+          <h2 class="vista__titulo">Conectores</h2>
+          <p class="vista__sub">Testa a conexão de verdade, com uma chamada real à API — não só a existência dos arquivos.</p>
         </div>
-        <div id="zoom-fields">
-          <div class="field-row">
-            <label>Amplitude</label>
-            <div class="control">
-              <input type="range" id="zoom-amplitude" min="0.02" max="0.3" step="0.01">
-              <span class="value-pill" id="zoom-amplitude-val"></span>
-            </div>
+
+        <div class="card bloco">
+          <div class="card__cabeca">
+            <h3 class="card__titulo">YouTube</h3>
+            <button class="acao acao--ghost acao--pequena" type="button" id="youtube-check">Testar</button>
           </div>
-          <div class="field-row">
-            <label>Duração da transição</label>
-            <div class="control">
-              <input type="range" id="zoom-transition" min="1" max="10" step="0.5">
-              <span class="value-pill" id="zoom-transition-val"></span>
-            </div>
-          </div>
-          <div class="field-row">
-            <label>Pausa automática</label>
-            <div class="control">
-              <div class="toggle on" id="zoom-hold-auto-toggle"><div class="knob"></div></div>
-              <span class="field-hint">5s até 30s de clip, 20s acima</span>
-            </div>
-          </div>
-          <div class="field-row" id="zoom-hold-manual-row" style="display:none">
-            <label>Pausa fixa (s)</label>
-            <div class="control">
-              <input type="range" id="zoom-hold" min="0" max="30" step="1">
-              <span class="value-pill" id="zoom-hold-val"></span>
-            </div>
-          </div>
+          <div id="youtube-status" class="conector__estado"></div>
         </div>
-      </div>
 
-      <button class="btn primary" id="style-save">Salvar estilo</button>
-    </section>
+        <div class="card bloco">
+          <div class="card__cabeca">
+            <h3 class="card__titulo">MCP no Claude Code</h3>
+            <button class="acao acao--ghost acao--pequena" type="button" id="mcp-check">Verificar</button>
+          </div>
+          <div id="mcp-status" class="conector__estado"></div>
+        </div>
+      </section>
 
-    <section id="view-settings" class="view">
-      <h2 class="view-title">Horários de publicação</h2>
-      <p class="view-sub">Um post por horário, todo dia. A madrugada cai antes da manhã do mesmo dia civil.</p>
-      <div class="panel">
-        <h3>Slots (horário de Brasília)</h3>
-        <div class="slot-list" id="slot-list"></div>
-        <button class="btn" id="slot-add" style="margin-top:10px">+ adicionar horário</button>
-      </div>
-      <button class="btn primary" id="settings-save">Salvar horários</button>
-    </section>
+      <!-- ===================== DOCUMENTAÇÃO ===================== -->
+      <section class="view" id="view-docs">
+        <div class="vista__cabeca">
+          <h2 class="vista__titulo">Documentação</h2>
+          <p class="vista__sub">O caminho completo, do arquivo bruto ao vídeo publicado.</p>
+        </div>
 
-    <section id="view-connectors" class="view">
-      <h2 class="view-title">Conectores</h2>
-      <p class="view-sub">Testa a conexão de verdade — não só se os arquivos de credencial existem.</p>
+        <div class="card bloco">
+          <p class="bloco__titulo">Pipeline, em ordem</p>
+          <ol class="doc-etapas">
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Normalização</p>
+              <p class="doc-etapa__texto">MOV, MP4 e M4V passam direto, sem recodificar. Outros formatos são convertidos.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Extração de áudio</p>
+              <p class="doc-etapa__texto">WAV mono 16 kHz — o formato que o Whisper espera.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Detecção de silêncio</p>
+              <p class="doc-etapa__texto"><code>ffmpeg silencedetect</code> mapeia as pausas do episódio inteiro.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Transcrição</p>
+              <p class="doc-etapa__texto">faster-whisper, local. Fica em cache: repetir o processo não paga a transcrição de novo, a menos que idioma ou modelo mudem.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Diarização</p>
+              <p class="doc-etapa__texto">Identifica quem fala em cada trecho por impressão de voz. Em podcast isso não é opcional: sem ela, um clipe pode ter você calado enquanto o outro locutor fala.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Filtro de persona</p>
+              <p class="doc-etapa__texto">Mantém só o que é comprovadamente da pessoa da câmera. É lista de permissão, não de bloqueio — trecho mal rotulado cai junto em vez de vazar.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Montagem dos cortes</p>
+              <p class="doc-etapa__texto">Corta em fim de frase ou de pensamento, por heurística de pausa ou por leitura semântica da transcrição.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Ajustes editoriais</p>
+              <p class="doc-etapa__texto">Correções manuais congeladas em tempo absoluto, imunes a uma re-transcrição futura.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Render</p>
+              <p class="doc-etapa__texto">Remove os trechos descartados, aplica o zoom e redimensiona para 1080×1920.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Legenda</p>
+              <p class="doc-etapa__texto">Queimada com Pillow e sobreposição — o ffmpeg local não tem libass. Três estilos: bloco, karaokê e pop.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Assinatura</p>
+              <p class="doc-etapa__texto">PNG recortado pelo canal alfa, escalado e fixado no rodapé.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Título e renomeação</p>
+              <p class="doc-etapa__texto">Título pensado para busca, e o arquivo renomeado para o nome de publicação.</p>
+            </div></li>
+            <li class="doc-etapa"><div>
+              <p class="doc-etapa__nome">Publicação</p>
+              <p class="doc-etapa__texto">Upload privado com data de publicação — o YouTube abre sozinho na hora marcada.</p>
+            </div></li>
+          </ol>
+        </div>
 
-      <div class="panel">
-        <h3>YouTube</h3>
-        <div id="youtube-status">Verificando…</div>
-        <button class="btn" id="youtube-check" style="margin-top:12px">Testar conexão</button>
-      </div>
+        <div class="card">
+          <p class="bloco__titulo">Decisões que valem saber</p>
+          <ul class="doc-regras">
+            <li class="doc-regra"><span>Reações curtas do outro locutor, abaixo de 1,6&nbsp;s, <b>não</b> são removidas: cortar cada "uhum" transformaria o clipe numa metralhadora de emendas.</span></li>
+            <li class="doc-regra"><span>O zoom entra <b>antes</b> das sobreposições — só a imagem respira; legenda e assinatura ficam paradas.</span></li>
+            <li class="doc-regra"><span>A pausa do zoom acompanha a duração do clipe, para o movimento não virar vaivém constante.</span></li>
+            <li class="doc-regra"><span>Vídeo privado não aparece em nenhuma listagem pública da API do YouTube. Isso é normal, não é falha de upload.</span></li>
+            <li class="doc-regra"><span>Toda ação de <b>Novo corte</b> guarda uma cópia do estado anterior em <code>.backups/</code> antes de tocar em qualquer arquivo.</span></li>
+          </ul>
+        </div>
+      </section>
 
-      <div class="panel">
-        <h3>MCP no Claude Code</h3>
-        <div id="mcp-status">Verificando…</div>
-        <button class="btn" id="mcp-check" style="margin-top:12px">Verificar registro</button>
-      </div>
-    </section>
-
-    <section id="view-docs" class="view">
-      <h2 class="view-title">Documentação</h2>
-      <p class="view-sub">O pipeline completo, do vídeo bruto ao vídeo publicado.</p>
-
-      <div class="panel">
-        <h3>Pipeline, em ordem</h3>
-        <ol style="padding-left:20px; font-size:13.5px; line-height:1.9">
-          <li><b>Normalização</b> — MOV/MP4/M4V passam direto (sem re-encode); outros formatos são convertidos.</li>
-          <li><b>Extração de áudio</b> — WAV mono 16kHz, o formato que o Whisper espera.</li>
-          <li><b>Detecção de silêncio</b> — <code>ffmpeg silencedetect</code> marca as pausas do episódio.</li>
-          <li><b>Transcrição</b> — faster-whisper, local. Fica em cache (<code>transcript.json</code>): re-rodar não paga a transcrição de novo, a menos que o idioma/modelo mude.</li>
-          <li><b>Diarização</b> — identifica quem fala em cada trecho por embedding de voz (ECAPA-TDNN). Essencial em podcast: sem isso, um clip pode ter você calado enquanto o outro locutor fala.</li>
-          <li><b>Filtro de persona</b> — mantém só os trechos comprovadamente da persona da câmera (whitelist, não blacklist: fala mal-rotulada some junto, em vez de vazar).</li>
-          <li><b>Montagem dos cortes</b> — corta em fim de frase/pensamento (heurística) ou por leitura semântica da transcrição.</li>
-          <li><b>Ajustes editoriais</b> — correções manuais congeladas em tempo absoluto (<code>snap:false</code>), imunes a uma re-transcrição futura.</li>
-          <li><b>Render</b> — remove os trechos descartados, aplica zoom (Ken Burns com pausa), redimensiona.</li>
-          <li><b>Legenda</b> — queimada via Pillow + overlay (o ffmpeg local não tem libass). Três estilos: bloco, karaokê, pop.</li>
-          <li><b>Assinatura</b> — PNG fixado no rodapé, recortado e escalado.</li>
-          <li><b>Título e renomeação</b> — título SEO por clip, arquivo renomeado para o nome de publicação.</li>
-          <li><b>Upload</b> — via MCP <code>yutu</code>, com agendamento nativo do YouTube (upload privado + <code>publishAt</code>).</li>
-        </ol>
-      </div>
-
-      <div class="panel">
-        <h3>Decisões que valem saber</h3>
-        <ul style="padding-left:20px; font-size:13px; line-height:1.85; color:var(--ink-soft2)">
-          <li>Reações curtas (&lt;1.6s) do outro locutor <b>não</b> são removidas — cortar cada "uhum" viraria uma metralhadora de jump cuts.</li>
-          <li>O zoom entra <b>antes</b> das sobreposições: só a imagem respira, legenda e assinatura ficam paradas.</li>
-          <li>A pausa do zoom acompanha a duração do clip: 5s até 30s, 20s acima — evita virar um vaivém constante.</li>
-          <li>Vídeos privados não aparecem em nenhuma listagem pública da API do YouTube — normal, não é falha de upload.</li>
-          <li>Toda ação de <b>Novo Corte</b> faz backup automático do estado anterior em <code>.backups/</code> antes de tocar os arquivos.</li>
-        </ul>
-      </div>
-    </section>
-
-  </main>
+    </main>
+  </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
 
-<div class="modal-overlay" id="video-modal">
-  <div class="modal">
-    <div class="close"><button id="modal-close">fechar ✕</button></div>
-    <video id="modal-video" controls autoplay></video>
+<div class="scrim" id="video-modal" hidden>
+  <div class="modal modal--video" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <div class="modal__cabeca">
+      <h3 class="modal__titulo" id="modal-titulo" style="font-size:.8125rem"></h3>
+      <button class="acao acao--sutil acao--icone acao--pequena" type="button" id="modal-close" aria-label="Fechar">
+        <svg><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <video id="modal-video" controls playsinline></video>
   </div>
 </div>
 

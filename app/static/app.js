@@ -1,17 +1,46 @@
-const state = {
-  project: null,
-  clips: [],
-  config: null,
+/* Clipper Flow — painel local.
+   O vocabulário visual vem da biblioteca do design system; aqui só o estado. */
+
+const state = { project: null, clips: [], config: null, jobId: null };
+
+const STATUS_BADGE = { publicado: "ok", agendado: "alerta", pendente: "neutro", nao_enfileirado: "neutro" };
+/* O status vem do backend em snake_case; a tela mostra a palavra que a pessoa usa. */
+const STATUS_ROTULO = {
+  publicado: "publicado",
+  agendado: "agendado",
+  pendente: "na fila",
+  nao_enfileirado: "sem fila",
 };
+const rotuloStatus = (s) => STATUS_ROTULO[s] ?? s;
+const TITULOS_VISTA = {
+  new: "Novo corte",
+  clips: "Clipes",
+  queue: "Publicação",
+  style: "Estilo",
+  settings: "Horários",
+  connectors: "Conectores",
+  docs: "Documentação",
+};
+
+const qs = (id) => document.getElementById(id);
 
 // --- utilidades ---------------------------------------------------------
 
-function showToast(message, isError = false) {
-  const el = document.getElementById("toast");
-  el.textContent = message;
-  el.classList.toggle("error", isError);
-  el.classList.add("show");
-  setTimeout(() => el.classList.remove("show"), isError ? 4000 : 2200);
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text ?? "";
+  return div.innerHTML;
+}
+
+/** Toast da biblioteca: ícone + texto, sai sozinho. */
+function toast(mensagem, tipo = "ok") {
+  const el = document.createElement("div");
+  el.className = `toast toast--${tipo}`;
+  el.setAttribute("role", tipo === "erro" ? "alert" : "status");
+  el.innerHTML = `<svg aria-hidden="true"><use href="#${tipo === "erro" ? "i-alerta" : "i-check"}"/></svg><span></span>`;
+  el.querySelector("span").textContent = mensagem;
+  qs("toasts").appendChild(el);
+  setTimeout(() => el.remove(), tipo === "erro" ? 5200 : 2800);
 }
 
 async function api(path, options = {}) {
@@ -22,26 +51,52 @@ async function api(path, options = {}) {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const detail = body.detail;
-    const message = Array.isArray(detail?.issues) ? detail.issues.join("; ") : (detail || "erro");
-    throw new Error(message);
+    throw new Error(Array.isArray(detail?.issues) ? detail.issues.join("; ") : (detail || "erro"));
   }
   return body;
 }
 
-function qs(id) { return document.getElementById(id); }
+function kpiCard(valor, rotulo) {
+  return `<div class="card"><div class="kpi">
+    <span class="kpi__rotulo">${escapeHtml(rotulo)}</span>
+    <span class="kpi__valor">${escapeHtml(String(valor))}</span>
+  </div></div>`;
+}
 
-// --- navegação -----------------------------------------------------------
+// --- navegação e chrome -------------------------------------------------
 
-document.querySelectorAll(".nav-btn").forEach((btn) => {
+/** Troca de vista pelo hash: dá link direto para cada tela e faz o botão
+    "voltar" do navegador funcionar, em vez de sair do app. */
+function irPara(vista) {
+  if (!TITULOS_VISTA[vista]) vista = "clips";
+  document.querySelectorAll(".nav-item[data-view]").forEach((b) => {
+    b.toggleAttribute("aria-current", b.dataset.view === vista);
+    if (b.dataset.view === vista) b.setAttribute("aria-current", "page");
+  });
+  document.querySelectorAll(".view").forEach((v) => v.classList.toggle("is-ativa", v.id === `view-${vista}`));
+  qs("topo-titulo").textContent = TITULOS_VISTA[vista];
+}
+
+document.querySelectorAll(".nav-item[data-view]").forEach((btn) => {
+  btn.addEventListener("click", () => { location.hash = btn.dataset.view; });
+});
+window.addEventListener("hashchange", () => irPara(location.hash.slice(1)));
+
+qs("app").querySelector("[data-colapso]").addEventListener("click", (event) => {
+  const colapsada = qs("app").classList.toggle("app--colapsada");
+  event.currentTarget.setAttribute("aria-expanded", String(!colapsada));
+});
+
+document.querySelectorAll(".seg [data-tema]").forEach((btn) => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
-    document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
-    btn.classList.add("active");
-    qs(`view-${btn.dataset.view}`).classList.add("active");
+    document.documentElement.dataset.tema = btn.dataset.tema;
+    document.querySelectorAll(".seg [data-tema]").forEach((b) =>
+      b.setAttribute("aria-pressed", String(b === btn))
+    );
   });
 });
 
-// --- projetos --------------------------------------------------------------
+// --- projetos -----------------------------------------------------------
 
 async function loadProjects() {
   const projects = await api("/api/projects");
@@ -52,301 +107,181 @@ async function loadProjects() {
     select.innerHTML = "<option>Nenhum projeto encontrado</option>";
     return;
   }
-
   for (const project of projects) {
     const option = document.createElement("option");
     option.value = project.path;
-    option.textContent = `${project.name} (${project.clip_count} clips)`;
+    option.textContent = `${project.name} · ${project.clip_count}`;
     select.appendChild(option);
   }
-
-  select.value = projects[0].path;
-  state.project = projects[0].path;
-  select.addEventListener("change", () => {
-    state.project = select.value;
-    loadClips();
-    loadQueue();
-  });
+  select.value = state.project ?? projects[0].path;
+  state.project = select.value;
 }
 
-// --- clips -----------------------------------------------------------------
+qs("project-select").addEventListener("change", (event) => {
+  state.project = event.target.value;
+  loadClips().then(loadQueue);
+});
+
+// --- clipes -------------------------------------------------------------
 
 async function loadClips() {
   if (!state.project) return;
   state.clips = await api(`/api/projects/clips?path=${encodeURIComponent(state.project)}`);
-  renderClipStats();
+  renderClipKpis();
   renderClipGrid();
+  qs("nav-contagem-clipes").textContent = state.clips.length || "";
 }
 
-function renderClipStats() {
-  const total = state.clips.length;
-  const byStatus = {};
-  for (const c of state.clips) byStatus[c.upload_status] = (byStatus[c.upload_status] || 0) + 1;
-  const minutes = state.clips.reduce((sum, c) => sum + parseFloat(c.duracao || 0), 0) / 60;
+function renderClipKpis() {
+  const porStatus = {};
+  for (const c of state.clips) porStatus[c.upload_status] = (porStatus[c.upload_status] || 0) + 1;
+  const minutos = state.clips.reduce((soma, c) => soma + (parseFloat(c.duracao) || 0), 0) / 60;
 
-  qs("clips-stats").innerHTML = [
-    [total, "clips"],
-    [(byStatus.publicado || 0), "publicados"],
-    [(byStatus.agendado || 0), "agendados"],
-    [(byStatus.pendente || 0), "pendentes"],
-    [minutes.toFixed(0) + " min", "material"],
-  ].map(([value, label]) => `<div class="stat"><b>${value}</b><span>${label}</span></div>`).join("");
+  qs("clips-kpis").innerHTML = [
+    kpiCard(state.clips.length, "clipes"),
+    kpiCard(porStatus.publicado || 0, "publicados"),
+    kpiCard(porStatus.agendado || 0, "agendados"),
+    kpiCard(porStatus.pendente || 0, "pendentes"),
+    kpiCard(`${minutos.toFixed(0)} min`, "material"),
+  ].join("");
 }
 
 function renderClipGrid() {
-  const filter = qs("clips-filter").value;
-  const sort = qs("clips-sort").value;
+  const filtro = qs("clips-filter").value;
+  const ordem = qs("clips-sort").value;
 
-  let list = state.clips.filter((c) => filter === "todos" || c.upload_status === filter);
-  if (sort === "score") list = [...list].sort((a, b) => b.score - a.score);
+  let lista = state.clips.filter((c) => filtro === "todos" || c.upload_status === filtro);
+  if (ordem === "score") lista = [...lista].sort((a, b) => b.score - a.score);
 
-  const grid = qs("clip-grid");
-  if (!list.length) {
-    grid.innerHTML = '<div class="empty-state">Nenhum clip com esse filtro.</div>';
+  const grade = qs("clip-grid");
+  grade.innerHTML = "";
+
+  if (!lista.length) {
+    grade.innerHTML = `<div class="vazio" style="grid-column:1/-1">
+      <p class="vazio__titulo">Nenhum clipe com esse filtro</p>
+      <p class="vazio__texto">Troque o status no seletor acima, ou gere novos cortes na aba Novo corte.</p>
+    </div>`;
     return;
   }
 
-  grid.innerHTML = "";
-  for (const clip of list) {
-    const card = document.createElement("article");
-    card.className = "clip-card";
+  for (const clip of lista) {
+    const card = document.createElement(clip.video_existe ? "button" : "div");
+    card.className = `clipe${clip.video_existe ? " clipe--abre" : ""}`;
+    if (clip.video_existe) card.type = "button";
 
-    const thumbUrl = clip.video_existe
-      ? `/api/projects/thumbnail?path=${encodeURIComponent(state.project)}&clip_id=${clip.id}`
+    const thumb = clip.video_existe
+      ? `<img loading="lazy" alt="" src="/api/projects/thumbnail?path=${encodeURIComponent(state.project)}&clip_id=${clip.id}">`
       : "";
 
     card.innerHTML = `
-      <div class="clip-thumb">
-        ${clip.estrela ? '<span class="star">⭐</span>' : ""}
-        <span class="badge ${clip.upload_status}">${clip.upload_status}</span>
-        ${thumbUrl ? `<img loading="lazy" src="${thumbUrl}">` : ""}
-      </div>
-      <div class="clip-body">
-        <p class="clip-title">${escapeHtml(clip.titulo)}</p>
-        <div class="clip-meta">${clip.start}–${clip.end} · ${clip.duracao}</div>
-        <div class="clip-score"><i style="width:${(clip.score / 10) * 100}%"></i></div>
-      </div>
-    `;
-    if (clip.video_existe) {
-      card.querySelector(".clip-thumb").addEventListener("click", () => openVideoModal(clip));
-      card.style.cursor = "pointer";
-    }
-    grid.appendChild(card);
-  }
-}
+      <span class="clipe__palco">
+        ${clip.estrela ? '<span class="clipe__estrela" title="Aposta de alcance">⭐</span>' : ""}
+        ${thumb}
+        <span class="clipe__play" aria-hidden="true"><svg><use href="#i-play"/></svg></span>
+        <span class="clipe__selo">
+          <span class="badge badge--${STATUS_BADGE[clip.upload_status] ?? "neutro"}">${escapeHtml(rotuloStatus(clip.upload_status))}</span>
+        </span>
+      </span>
+      <span class="clipe__corpo">
+        <span class="clipe__titulo">${escapeHtml(clip.titulo)}</span>
+        <span class="clipe__meta">${escapeHtml(clip.start)}–${escapeHtml(clip.end)} · ${escapeHtml(clip.duracao)}</span>
+        <span class="progresso clipe__score"><i style="--p:${(clip.score / 10) * 100}%"></i></span>
+      </span>`;
 
-function escapeHtml(text) {
-  const div = document.createElement("div");
-  div.textContent = text || "";
-  return div.innerHTML;
+    if (clip.video_existe) card.addEventListener("click", () => abrirVideo(clip));
+    grade.appendChild(card);
+  }
 }
 
 qs("clips-filter").addEventListener("change", renderClipGrid);
 qs("clips-sort").addEventListener("change", renderClipGrid);
-qs("clips-refresh").addEventListener("click", loadClips);
+qs("clips-refresh").addEventListener("click", () => loadClips().then(() => toast("Lista atualizada.")));
 
-function openVideoModal(clip) {
-  const url = `/api/projects/video?path=${encodeURIComponent(state.project)}&clip_id=${clip.id}`;
-  qs("modal-video").src = url;
-  qs("video-modal").classList.add("show");
+// --- modal de vídeo -----------------------------------------------------
+
+let ultimoFoco = null;
+
+function abrirVideo(clip) {
+  ultimoFoco = document.activeElement;
+  qs("modal-titulo").textContent = clip.titulo;
+  qs("modal-video").src = `/api/projects/video?path=${encodeURIComponent(state.project)}&clip_id=${clip.id}`;
+  qs("video-modal").hidden = false;
+  qs("modal-close").focus();
 }
-qs("modal-close").addEventListener("click", () => {
-  qs("video-modal").classList.remove("show");
+
+function fecharVideo() {
+  qs("video-modal").hidden = true;
   qs("modal-video").pause();
   qs("modal-video").src = "";
-});
+  ultimoFoco?.focus();
+}
+
+qs("modal-close").addEventListener("click", fecharVideo);
 qs("video-modal").addEventListener("click", (event) => {
-  if (event.target.id === "video-modal") qs("modal-close").click();
+  if (event.target.id === "video-modal") fecharVideo();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !qs("video-modal").hidden) fecharVideo();
 });
 
-// --- fila / agendamento ------------------------------------------------------
+// --- fila de publicação -------------------------------------------------
 
 async function loadQueue() {
   if (!state.project) return;
-  const summary = await api(`/api/projects/queue-summary?path=${encodeURIComponent(state.project)}`);
-  qs("queue-stats").innerHTML = Object.entries(summary.por_status)
-    .map(([status, count]) => `<div class="stat"><b>${count}</b><span>${status}</span></div>`)
-    .concat(`<div class="stat"><b>${summary.total}</b><span>total</span></div>`)
+  const resumo = await api(`/api/projects/queue-summary?path=${encodeURIComponent(state.project)}`);
+
+  qs("queue-kpis").innerHTML = Object.entries(resumo.por_status)
+    .map(([status, n]) => kpiCard(n, rotuloStatus(status)))
+    .concat(kpiCard(resumo.total, "total"))
     .join("");
 
-  const body = qs("queue-table-body");
-  const sorted = [...state.clips].sort((a, b) => (a.publish_at || "").localeCompare(b.publish_at || ""));
-  body.innerHTML = sorted
-    .map(
-      (c) => `<tr>
-        <td>${escapeHtml(c.titulo.slice(0, 46))}</td>
-        <td><span class="pill ${c.upload_status}">${c.upload_status}</span></td>
-        <td>${c.publish_at ? new Date(c.publish_at).toLocaleString("pt-BR") : "—"}</td>
-        <td style="font-family:ui-monospace,monospace">${c.video_id || "—"}</td>
-      </tr>`
-    )
+  const pendentes = resumo.por_status.pendente || 0;
+  qs("nav-contagem-fila").textContent = pendentes || "";
+
+  const ordenados = [...state.clips].sort((a, b) =>
+    (a.publish_at || "￿").localeCompare(b.publish_at || "￿")
+  );
+  qs("queue-table-body").innerHTML = ordenados
+    .map((c) => `<tr>
+      <td class="prim">${escapeHtml(c.titulo.slice(0, 44))}</td>
+      <td><span class="badge badge--${STATUS_BADGE[c.upload_status] ?? "neutro"}">${escapeHtml(rotuloStatus(c.upload_status))}</span></td>
+      <td>${c.publish_at ? escapeHtml(new Date(c.publish_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })) : "—"}</td>
+      <td class="mono">${escapeHtml(c.video_id || "—")}</td>
+    </tr>`)
     .join("");
 }
 
-let scheduleMode = true;
-qs("publish-schedule-toggle").addEventListener("click", () => {
-  scheduleMode = !scheduleMode;
-  qs("publish-schedule-toggle").classList.toggle("on", scheduleMode);
-  qs("publish-schedule-label").textContent = scheduleMode
-    ? "Agendar nos horários configurados"
-    : "Publicar direto (privado)";
+qs("publish-schedule").addEventListener("change", (event) => {
+  qs("publish-schedule-label").textContent = event.target.checked
+    ? "Nos horários configurados"
+    : "Publicar direto, sem data";
 });
 
-qs("publish-btn").addEventListener("click", async () => {
-  const button = qs("publish-btn");
-  const output = qs("publish-result");
-  button.disabled = true;
-  output.textContent = "Publicando — isso pode levar alguns minutos por vídeo...";
+qs("publish-btn").addEventListener("click", async (event) => {
+  const botao = event.currentTarget;
+  const saida = qs("publish-result");
+  botao.dataset.carregando = "1";
+  saida.hidden = false;
+  saida.textContent = "Enviando — cada vídeo leva alguns minutos…";
+
   try {
-    const result = await api("/api/publish", {
+    const resultado = await api("/api/publish", {
       method: "POST",
       body: JSON.stringify({
         project_path: state.project,
         max_uploads: parseInt(qs("publish-count").value, 10),
-        schedule: scheduleMode,
+        schedule: qs("publish-schedule").checked,
       }),
     });
-    output.textContent = result.stdout.join("\n");
-    showToast("Lote processado.");
-    loadClips();
-    loadQueue();
+    saida.textContent = resultado.stdout.join("\n");
+    toast("Lote processado.");
+    await loadClips();
+    await loadQueue();
   } catch (error) {
-    output.textContent = "Erro: " + error.message;
-    showToast("Falha ao publicar: " + error.message, true);
+    saida.textContent = "Erro: " + error.message;
+    toast("Falha ao publicar: " + error.message, "erro");
   } finally {
-    button.disabled = false;
-  }
-});
-
-// --- estilo -----------------------------------------------------------------
-
-async function loadConfig() {
-  const { config } = await api("/api/config");
-  state.config = config;
-
-  document.querySelectorAll(".style-option").forEach((el) => {
-    el.classList.toggle("selected", el.dataset.style === config.subtitle_style);
-    el.addEventListener("click", () => {
-      document.querySelectorAll(".style-option").forEach((o) => o.classList.remove("selected"));
-      el.classList.add("selected");
-    });
-  });
-
-  qs("subtitle-size").value = config.subtitle_size_ratio;
-  qs("subtitle-size-val").textContent = config.subtitle_size_ratio.toFixed(3);
-
-  qs("signature-size").value = config.signature_size_ratio;
-  qs("signature-size-val").textContent = config.signature_size_ratio.toFixed(2);
-  if (config.signature_path) {
-    qs("sig-preview").style.backgroundImage = `url(/api/config/signature/preview?_=${Date.now()})`;
-  }
-
-  qs("zoom-toggle").classList.toggle("on", config.zoom_enabled);
-  qs("zoom-fields").style.opacity = config.zoom_enabled ? "1" : ".45";
-  qs("zoom-amplitude").value = config.zoom_amplitude;
-  qs("zoom-amplitude-val").textContent = config.zoom_amplitude.toFixed(2);
-  qs("zoom-transition").value = config.zoom_transition_s;
-  qs("zoom-transition-val").textContent = config.zoom_transition_s + "s";
-  qs("zoom-hold-auto-toggle").classList.toggle("on", config.zoom_hold_auto);
-  qs("zoom-hold-manual-row").style.display = config.zoom_hold_auto ? "none" : "flex";
-  qs("zoom-hold").value = config.zoom_hold_s;
-  qs("zoom-hold-val").textContent = config.zoom_hold_s + "s";
-
-  renderSlots(config.schedule_slots);
-}
-
-function bindRangeDisplay(inputId, labelId, formatter) {
-  const input = qs(inputId);
-  input.addEventListener("input", () => {
-    qs(labelId).textContent = formatter(parseFloat(input.value));
-  });
-}
-bindRangeDisplay("subtitle-size", "subtitle-size-val", (v) => v.toFixed(3));
-bindRangeDisplay("signature-size", "signature-size-val", (v) => v.toFixed(2));
-bindRangeDisplay("zoom-amplitude", "zoom-amplitude-val", (v) => v.toFixed(2));
-bindRangeDisplay("zoom-transition", "zoom-transition-val", (v) => v + "s");
-bindRangeDisplay("zoom-hold", "zoom-hold-val", (v) => v + "s");
-
-qs("zoom-toggle").addEventListener("click", () => {
-  const on = qs("zoom-toggle").classList.toggle("on");
-  qs("zoom-fields").style.opacity = on ? "1" : ".45";
-});
-qs("zoom-hold-auto-toggle").addEventListener("click", () => {
-  const on = qs("zoom-hold-auto-toggle").classList.toggle("on");
-  qs("zoom-hold-manual-row").style.display = on ? "none" : "flex";
-});
-
-qs("sig-file").addEventListener("change", async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  const formData = new FormData();
-  formData.append("file", file);
-  try {
-    const response = await fetch("/api/config/signature", { method: "POST", body: formData });
-    if (!response.ok) throw new Error("upload falhou");
-    const { signature_path } = await response.json();
-    qs("sig-preview").style.backgroundImage = `url(/api/config/signature/preview?_=${Date.now()})`;
-    showToast("Assinatura atualizada.");
-  } catch (error) {
-    showToast("Erro ao subir assinatura: " + error.message, true);
-  }
-});
-
-qs("style-save").addEventListener("click", async () => {
-  const selected = document.querySelector(".style-option.selected");
-  try {
-    await api("/api/config", {
-      method: "PUT",
-      body: JSON.stringify({
-        subtitle_style: selected.dataset.style,
-        subtitle_size_ratio: parseFloat(qs("subtitle-size").value),
-        signature_size_ratio: parseFloat(qs("signature-size").value),
-        zoom_enabled: qs("zoom-toggle").classList.contains("on"),
-        zoom_amplitude: parseFloat(qs("zoom-amplitude").value),
-        zoom_transition_s: parseFloat(qs("zoom-transition").value),
-        zoom_hold_auto: qs("zoom-hold-auto-toggle").classList.contains("on"),
-        zoom_hold_s: parseFloat(qs("zoom-hold").value),
-      }),
-    });
-    showToast("Estilo salvo.");
-  } catch (error) {
-    showToast("Erro ao salvar: " + error.message, true);
-  }
-});
-
-// --- horários -----------------------------------------------------------
-
-function renderSlots(slots) {
-  const container = qs("slot-list");
-  container.innerHTML = "";
-  for (const slot of slots) addSlotInput(slot);
-}
-
-function addSlotInput(value = "08:00") {
-  const wrapper = document.createElement("div");
-  wrapper.style.display = "flex";
-  wrapper.style.gap = "4px";
-  const input = document.createElement("input");
-  input.type = "text";
-  input.value = value;
-  input.placeholder = "HH:MM";
-  const remove = document.createElement("button");
-  remove.className = "btn";
-  remove.textContent = "✕";
-  remove.addEventListener("click", () => wrapper.remove());
-  wrapper.append(input, remove);
-  qs("slot-list").appendChild(wrapper);
-}
-
-qs("slot-add").addEventListener("click", () => addSlotInput());
-
-qs("settings-save").addEventListener("click", async () => {
-  const slots = Array.from(qs("slot-list").querySelectorAll("input")).map((i) => i.value.trim());
-  try {
-    await api("/api/config", { method: "PUT", body: JSON.stringify({ schedule_slots: slots }) });
-    showToast("Horários salvos.");
-  } catch (error) {
-    showToast("Erro ao salvar horários: " + error.message, true);
+    delete botao.dataset.carregando;
   }
 });
 
@@ -356,6 +291,7 @@ async function loadSourceVideos() {
   const videos = await api("/api/source-videos");
   const select = qs("source-video-select");
   select.innerHTML = "";
+
   if (!videos.length) {
     select.innerHTML = "<option value=''>Nenhum vídeo grande encontrado</option>";
     return;
@@ -363,160 +299,333 @@ async function loadSourceVideos() {
   for (const v of videos) {
     const option = document.createElement("option");
     option.value = v.path;
-    option.textContent = `${v.name} (${v.size_mb} MB)`;
+    option.textContent = `${v.name} · ${(v.size_mb / 1024).toFixed(1)} GB`;
     select.appendChild(option);
   }
-  updateSuggestedOutput();
+  await sugerirSaida();
 }
 
-async function updateSuggestedOutput() {
+async function sugerirSaida() {
   const videoPath = qs("source-video-select").value;
   if (!videoPath) return;
   const { output_dir } = await api(`/api/source-videos/suggest-output?video_path=${encodeURIComponent(videoPath)}`);
   qs("output-dir").value = output_dir;
 }
 
-qs("source-video-select").addEventListener("change", updateSuggestedOutput);
-qs("source-video-refresh").addEventListener("click", loadSourceVideos);
+qs("source-video-select").addEventListener("change", sugerirSaida);
+qs("source-video-refresh").addEventListener("click", () => loadSourceVideos().then(() => toast("Lista atualizada.")));
 
-let currentJobId = null;
-let jobPollTimer = null;
+function opcoesProcessamento() {
+  return {
+    video_path: qs("source-video-select").value,
+    output_dir: qs("output-dir").value,
+    language: qs("new-language").value,
+    min_clip_duration: parseFloat(qs("new-min-duration").value),
+    max_clip_duration: parseFloat(qs("new-max-duration").value),
+  };
+}
 
-qs("dry-run-btn").addEventListener("click", async () => {
-  const videoPath = qs("source-video-select").value;
-  if (!videoPath) { showToast("Escolha um vídeo primeiro.", true); return; }
-
+qs("dry-run-btn").addEventListener("click", async (event) => {
+  if (!qs("source-video-select").value) {
+    toast("Escolha um vídeo primeiro.", "erro");
+    return;
+  }
+  const botao = event.currentTarget;
+  botao.dataset.carregando = "1";
   try {
     const { job_id } = await api("/api/process/dry-run", {
       method: "POST",
-      body: JSON.stringify({
-        video_path: videoPath,
-        output_dir: qs("output-dir").value,
-        language: qs("new-language").value,
-        min_clip_duration: parseFloat(qs("new-min-duration").value),
-        max_clip_duration: parseFloat(qs("new-max-duration").value),
-        word_timestamps: true,
-      }),
+      body: JSON.stringify({ ...opcoesProcessamento(), word_timestamps: true }),
     });
-    currentJobId = job_id;
-    qs("job-panel").style.display = "block";
-    qs("job-title").textContent = "Transcrevendo e propondo cortes...";
+    state.jobId = job_id;
+    qs("job-panel").hidden = false;
+    qs("job-title").textContent = "Transcrevendo e propondo cortes…";
+    qs("job-badge").className = "badge badge--info";
+    qs("job-badge").textContent = "em curso";
     qs("job-actions").innerHTML = "";
-    pollJob();
+    acompanharJob();
   } catch (error) {
-    showToast("Erro ao iniciar: " + error.message, true);
+    toast("Erro ao iniciar: " + error.message, "erro");
+  } finally {
+    delete botao.dataset.carregando;
   }
 });
 
-function pollJob() {
-  clearTimeout(jobPollTimer);
-  jobPollTimer = setTimeout(async () => {
+let timerJob = null;
+
+function acompanharJob() {
+  clearTimeout(timerJob);
+  timerJob = setTimeout(async () => {
     try {
-      const status = await api(`/api/process/status?job_id=${currentJobId}`);
-      qs("job-log").textContent = status.log_tail.join("\n");
-      qs("job-log").scrollTop = qs("job-log").scrollHeight;
+      const status = await api(`/api/process/status?job_id=${state.jobId}`);
+      const log = qs("job-log");
+      log.textContent = status.log_tail.join("\n");
+      log.scrollTop = log.scrollHeight;
 
       if (status.running) {
-        pollJob();
+        acompanharJob();
         return;
       }
 
-      if (status.returncode === 0 && status.kind === "dry_run") {
-        qs("job-title").textContent = "Cortes propostos — revise na aba Clips antes de renderizar.";
+      const ok = status.returncode === 0;
+      qs("job-badge").className = `badge badge--${ok ? "ok" : "erro"}`;
+      qs("job-badge").textContent = ok ? "concluído" : "falhou";
+
+      if (ok && status.kind === "dry_run") {
+        qs("job-title").textContent = "Cortes propostos — revise em Clipes antes de renderizar";
+        const botao = document.createElement("button");
+        botao.className = "acao acao--primaria";
+        botao.type = "button";
+        botao.textContent = "Renderizar com o estilo atual";
+        botao.addEventListener("click", () => renderizar(status.output_dir));
+        qs("job-actions").replaceChildren(botao);
+        await loadProjects();
+      } else if (ok) {
+        qs("job-title").textContent = "Render concluído";
         qs("job-actions").innerHTML = "";
-        const renderButton = document.createElement("button");
-        renderButton.className = "btn primary";
-        renderButton.textContent = "Renderizar com o estilo atual";
-        renderButton.addEventListener("click", () => startRender(status.output_dir, qs("source-video-select").value));
-        qs("job-actions").appendChild(renderButton);
-        loadProjects();
-      } else if (status.returncode === 0 && status.kind === "render") {
-        qs("job-title").textContent = "Render concluído.";
-        loadProjects();
-        loadClips();
+        await loadProjects();
+        await loadClips();
       } else {
-        qs("job-title").textContent = `Terminou com erro (código ${status.returncode}).`;
+        qs("job-title").textContent = `Terminou com erro (código ${status.returncode})`;
       }
     } catch (error) {
-      qs("job-title").textContent = "Erro ao acompanhar o job: " + error.message;
+      qs("job-title").textContent = "Erro ao acompanhar: " + error.message;
+      qs("job-badge").className = "badge badge--erro";
+      qs("job-badge").textContent = "erro";
     }
   }, 2000);
 }
 
-async function startRender(outputDir, videoPath) {
+async function renderizar(outputDir) {
   try {
     const { job_id } = await api("/api/process/render", {
       method: "POST",
-      body: JSON.stringify({
-        video_path: videoPath,
-        output_dir: outputDir,
-        language: qs("new-language").value,
-        min_clip_duration: parseFloat(qs("new-min-duration").value),
-        max_clip_duration: parseFloat(qs("new-max-duration").value),
-      }),
+      body: JSON.stringify({ ...opcoesProcessamento(), output_dir: outputDir }),
     });
-    currentJobId = job_id;
-    qs("job-title").textContent = "Renderizando (legenda, zoom, assinatura)...";
+    state.jobId = job_id;
+    qs("job-title").textContent = "Renderizando legenda, zoom e assinatura…";
+    qs("job-badge").className = "badge badge--info";
+    qs("job-badge").textContent = "em curso";
     qs("job-actions").innerHTML = "";
-    pollJob();
+    acompanharJob();
   } catch (error) {
-    showToast("Erro ao renderizar: " + error.message, true);
+    toast("Erro ao renderizar: " + error.message, "erro");
   }
 }
 
-// --- conectores -----------------------------------------------------------
+// --- estilo -------------------------------------------------------------
 
-async function checkYoutubeConnector() {
-  qs("youtube-status").textContent = "Verificando…";
+function ligarDeslizante(idInput, idValor, formatar) {
+  const input = qs(idInput);
+  const mostrar = () => { qs(idValor).textContent = formatar(parseFloat(input.value)); };
+  input.addEventListener("input", mostrar);
+  return mostrar;
+}
+
+const mostrarTamanhoLegenda = ligarDeslizante("subtitle-size", "subtitle-size-val", (v) => v.toFixed(3));
+const mostrarTamanhoAssinatura = ligarDeslizante("signature-size", "signature-size-val", (v) => v.toFixed(2));
+const mostrarAmplitude = ligarDeslizante("zoom-amplitude", "zoom-amplitude-val", (v) => `${(v * 100).toFixed(0)}%`);
+const mostrarTransicao = ligarDeslizante("zoom-transition", "zoom-transition-val", (v) => `${v}s`);
+const mostrarPausa = ligarDeslizante("zoom-hold", "zoom-hold-val", (v) => `${v}s`);
+
+function aplicarEstadoZoom() {
+  const ligado = qs("zoom-enabled").checked;
+  qs("zoom-fields").style.opacity = ligado ? "1" : ".45";
+  qs("zoom-fields").querySelectorAll("input").forEach((i) => { i.disabled = !ligado; });
+  qs("zoom-hold-manual-row").hidden = qs("zoom-hold-auto").checked;
+}
+
+qs("zoom-enabled").addEventListener("change", aplicarEstadoZoom);
+qs("zoom-hold-auto").addEventListener("change", aplicarEstadoZoom);
+
+async function loadConfig() {
+  const { config } = await api("/api/config");
+  state.config = config;
+
+  const radio = document.querySelector(`input[name="subtitle-style"][value="${config.subtitle_style}"]`);
+  if (radio) radio.checked = true;
+
+  qs("subtitle-size").value = config.subtitle_size_ratio;
+  qs("signature-size").value = config.signature_size_ratio;
+  qs("zoom-enabled").checked = config.zoom_enabled;
+  qs("zoom-amplitude").value = config.zoom_amplitude;
+  qs("zoom-transition").value = config.zoom_transition_s;
+  qs("zoom-hold-auto").checked = config.zoom_hold_auto;
+  qs("zoom-hold").value = config.zoom_hold_s;
+
+  mostrarTamanhoLegenda();
+  mostrarTamanhoAssinatura();
+  mostrarAmplitude();
+  mostrarTransicao();
+  mostrarPausa();
+  aplicarEstadoZoom();
+  mostrarAssinatura(config.signature_path);
+  renderSlots(config.schedule_slots);
+}
+
+function mostrarAssinatura(caminho) {
+  const previa = qs("sig-preview");
+  if (caminho) {
+    previa.style.backgroundImage = `url(/api/config/signature/preview?_=${Date.now()})`;
+    previa.classList.remove("assinatura__vazia");
+    previa.textContent = "";
+  } else {
+    previa.style.backgroundImage = "";
+    previa.classList.add("assinatura__vazia");
+    previa.textContent = "sem imagem";
+  }
+}
+
+qs("sig-file").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append("file", file);
+  try {
+    const response = await fetch("/api/config/signature", { method: "POST", body: formData });
+    if (!response.ok) throw new Error("upload recusado");
+    const { signature_path } = await response.json();
+    mostrarAssinatura(signature_path);
+    toast("Assinatura atualizada.");
+  } catch (error) {
+    toast("Erro ao enviar: " + error.message, "erro");
+  }
+});
+
+qs("style-save").addEventListener("click", async (event) => {
+  const botao = event.currentTarget;
+  botao.dataset.carregando = "1";
+  try {
+    await api("/api/config", {
+      method: "PUT",
+      body: JSON.stringify({
+        subtitle_style: document.querySelector('input[name="subtitle-style"]:checked').value,
+        subtitle_size_ratio: parseFloat(qs("subtitle-size").value),
+        signature_size_ratio: parseFloat(qs("signature-size").value),
+        zoom_enabled: qs("zoom-enabled").checked,
+        zoom_amplitude: parseFloat(qs("zoom-amplitude").value),
+        zoom_transition_s: parseFloat(qs("zoom-transition").value),
+        zoom_hold_auto: qs("zoom-hold-auto").checked,
+        zoom_hold_s: parseFloat(qs("zoom-hold").value),
+      }),
+    });
+    toast("Estilo salvo.");
+  } catch (error) {
+    toast("Erro ao salvar: " + error.message, "erro");
+  } finally {
+    delete botao.dataset.carregando;
+  }
+});
+
+// --- horários -----------------------------------------------------------
+
+function renderSlots(slots) {
+  qs("slot-list").innerHTML = "";
+  for (const slot of slots) adicionarSlot(slot);
+}
+
+function adicionarSlot(valor = "08:00") {
+  const wrapper = document.createElement("div");
+  wrapper.className = "horario";
+
+  const input = document.createElement("input");
+  input.className = "input";
+  input.type = "text";
+  input.value = valor;
+  input.placeholder = "HH:MM";
+  input.setAttribute("aria-label", "Horário de publicação");
+
+  const remover = document.createElement("button");
+  remover.className = "acao acao--sutil acao--icone acao--pequena";
+  remover.type = "button";
+  remover.setAttribute("aria-label", `Remover horário ${valor}`);
+  remover.innerHTML = '<svg><use href="#i-x"/></svg>';
+  remover.addEventListener("click", () => wrapper.remove());
+
+  wrapper.append(input, remover);
+  qs("slot-list").appendChild(wrapper);
+}
+
+qs("slot-add").addEventListener("click", () => adicionarSlot());
+
+qs("settings-save").addEventListener("click", async (event) => {
+  const botao = event.currentTarget;
+  botao.dataset.carregando = "1";
+  const slots = [...qs("slot-list").querySelectorAll("input")].map((i) => i.value.trim());
+  try {
+    await api("/api/config", { method: "PUT", body: JSON.stringify({ schedule_slots: slots }) });
+    toast("Horários salvos.");
+  } catch (error) {
+    toast("Erro ao salvar: " + error.message, "erro");
+  } finally {
+    delete botao.dataset.carregando;
+  }
+});
+
+// --- conectores ---------------------------------------------------------
+
+function linhaConector(chave, valor, mono = false) {
+  return `<div class="conector__linha">
+    <span class="conector__chave">${escapeHtml(chave)}</span>
+    <span class="conector__valor${mono ? " conector__valor--mono" : ""}">${valor}</span>
+  </div>`;
+}
+
+async function checarYoutube() {
+  const alvo = qs("youtube-status");
+  alvo.innerHTML = '<span class="skel" style="height:14px;width:60%"></span>';
   try {
     const status = await api("/api/connectors/youtube");
     if (status.connected) {
-      qs("youtube-status").innerHTML = `
-        <div class="field-row"><label>Status</label><span class="pill publicado">Conectado</span></div>
-        <div class="field-row"><label>Canal</label><span>${escapeHtml(status.channel_title)}</span></div>
-        <div class="field-row"><label>Inscritos</label><span>${status.subscriber_count}</span></div>
-        <div class="field-row"><label>Vídeos públicos</label><span>${status.video_count}</span></div>
-      `;
+      alvo.innerHTML =
+        linhaConector("Status", '<span class="badge badge--ok">conectado</span>') +
+        linhaConector("Canal", escapeHtml(status.channel_title)) +
+        linhaConector("Inscritos", escapeHtml(status.subscriber_count)) +
+        linhaConector("Vídeos públicos", escapeHtml(status.video_count)) +
+        linhaConector("Credencial", escapeHtml(status.credential_path), true);
     } else {
-      qs("youtube-status").innerHTML = `<span class="pill" style="background:var(--warn-soft);color:var(--warn)">Não conectado</span> — ${escapeHtml(String(status.reason))}`;
+      alvo.innerHTML =
+        linhaConector("Status", '<span class="badge badge--alerta">desconectado</span>') +
+        linhaConector("Motivo", escapeHtml(String(status.reason)));
     }
   } catch (error) {
-    qs("youtube-status").textContent = "Erro ao verificar: " + error.message;
+    alvo.innerHTML = `<div class="erro-bloco"><svg><use href="#i-alerta"/></svg><div><b>Não deu para verificar</b><p>${escapeHtml(error.message)}</p></div></div>`;
   }
 }
 
-async function checkMcpConnector() {
-  qs("mcp-status").textContent = "Verificando…";
+async function checarMcp() {
+  const alvo = qs("mcp-status");
+  alvo.innerHTML = '<span class="skel" style="height:14px;width:60%"></span>';
   try {
     const status = await api("/api/connectors/mcp");
-    const pillClass = status.registered ? "publicado" : "pendente";
-    const label = status.registered ? "Registrado" : "Não registrado";
-    qs("mcp-status").innerHTML = `
-      <div class="field-row"><label>Status</label><span class="pill ${pillClass}">${label}</span></div>
-      <pre style="font-size:11px; background:var(--surface-sunk); padding:10px; border-radius:8px; white-space:pre-wrap">${escapeHtml(status.detail)}</pre>
-    `;
+    const badge = status.registered
+      ? '<span class="badge badge--ok">registrado</span>'
+      : '<span class="badge badge--neutro">não registrado</span>';
+    alvo.innerHTML =
+      linhaConector("Status", badge) +
+      `<pre class="log" style="max-height:150px">${escapeHtml(status.detail)}</pre>`;
   } catch (error) {
-    qs("mcp-status").textContent = "Erro ao verificar: " + error.message;
+    alvo.innerHTML = `<div class="erro-bloco"><svg><use href="#i-alerta"/></svg><div><b>Não deu para verificar</b><p>${escapeHtml(error.message)}</p></div></div>`;
   }
 }
 
-qs("youtube-check").addEventListener("click", checkYoutubeConnector);
-qs("mcp-check").addEventListener("click", checkMcpConnector);
+qs("youtube-check").addEventListener("click", checarYoutube);
+qs("mcp-check").addEventListener("click", checarMcp);
 
-// --- boot -----------------------------------------------------------------
+// --- início -------------------------------------------------------------
 
-(async function init() {
+(async function iniciar() {
+  irPara(location.hash.slice(1) || "clips");
   try {
     await loadProjects();
     await Promise.all([
-      loadClips(),
-      loadQueue(),
+      loadClips().then(loadQueue),
       loadConfig(),
       loadSourceVideos(),
-      checkYoutubeConnector(),
-      checkMcpConnector(),
+      checarYoutube(),
+      checarMcp(),
     ]);
   } catch (error) {
-    showToast("Erro ao carregar painel: " + error.message, true);
+    toast("Erro ao carregar: " + error.message, "erro");
   }
 })();

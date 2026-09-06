@@ -1,0 +1,265 @@
+/* =========================================================================
+   SHELL — o chassi do app: sidebar, topbar, breadcrumb, abas, comando.
+   Regra que organiza tudo (REFERO/PADROES-APLICATIVOS.md §1):
+   profundidade por BORDA e ESPAÇAMENTO, nunca por sombra.
+   ========================================================================= */
+
+/* ---------- APP SHELL: 2 colunas, o padrão dos 7 âncoras ---------- */
+.app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--r-card);
+  overflow: hidden;
+  background: var(--void);
+  min-height: 340px;
+}
+.app--colapsada { grid-template-columns: 56px 1fr; }
+
+.app__aside {
+  border-right: var(--border-w) solid var(--border);
+  background: var(--surface);
+  padding: var(--space-element);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.app__main { display: flex; flex-direction: column; min-width: 0; }
+
+/* ---------- SIDEBAR NAV ITEM ----------
+   Dub: "active state uses a soft chromatic fill rather than a bold
+   left-border indicator". O preenchimento suave é o que tira a cara
+   de template — a barra grossa à esquerda é o contraexemplo. */
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--r-campo);
+  font-size: var(--dens-texto); font-weight: 500;
+  letter-spacing: var(--tk-body);
+  color: var(--muted); text-decoration: none;
+  background: transparent; border: 0; cursor: pointer;
+  text-align: left; width: 100%;
+  font-family: var(--font-body);
+  transition: background-color var(--t-in) var(--ease), color var(--t-in) var(--ease);
+}
+.nav-item:hover { color: var(--ink); background: color-mix(in oklab, var(--ink) 6%, transparent); }
+.nav-item[aria-current="page"] {
+  color: var(--accent-texto);
+  background: color-mix(in oklab, var(--accent) 15%, transparent);
+  font-weight: 600;
+}
+.nav-item__icone { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; }
+.nav-item__contagem {
+  margin-left: auto; font-family: var(--font-mono); font-size: 0.625rem;
+  color: var(--fade); font-variant-numeric: tabular-nums;
+}
+.app--colapsada .nav-item__rotulo,
+.app--colapsada .nav-item__contagem,
+.app--colapsada .nav-grupo { display: none; }
+.app--colapsada .nav-item { justify-content: center; padding: 9px 0; }
+
+/* Estreitar a coluna sem esconder o rótulo corta a palavra na borda: a
+   largura e o conteúdo da sidebar são a MESMA decisão, nunca duas. */
+@media (max-width: 640px) {
+  .app { grid-template-columns: 56px 1fr; }
+  .app .nav-item__rotulo,
+  .app .nav-item__contagem,
+  .app .nav-grupo { display: none; }
+  .app .nav-item { justify-content: center; padding: 9px 0; }
+}
+
+/* Contraexemplo: a barra lateral grossa que todo template usa */
+.nav-item--barra[aria-current="page"] {
+  background: transparent; border-radius: 0;
+  border-left: 3px solid var(--accent); padding-left: 12px;
+  color: var(--ink);
+}
+
+.nav-grupo {
+  font-family: var(--font-mono); font-size: 0.5625rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: var(--tk-micro);
+  color: var(--fade); padding: var(--space-card) 10px 6px;
+}
+
+/* ---------- TOPBAR ---------- */
+.app__topo {
+  display: flex; align-items: center; gap: var(--space-element);
+  padding: 10px var(--space-card);
+  border-bottom: var(--border-w) solid var(--border);
+  background: var(--surface);
+  min-height: 52px;
+}
+.app__titulo {
+  font-size: 0.9375rem; font-weight: 600; letter-spacing: var(--tk-h3);
+  margin: 0; color: var(--ink);
+}
+.app__conteudo { padding: var(--space-card); flex: 1; min-width: 0; }
+
+/* ---------- BREADCRUMB ---------- */
+.breadcrumb { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.breadcrumb a, .breadcrumb span {
+  font-size: 0.75rem; color: var(--fade); text-decoration: none;
+}
+.breadcrumb a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.breadcrumb [aria-current] { color: var(--ink); font-weight: 500; }
+.breadcrumb i { color: var(--border); font-style: normal; }
+
+/* ---------- BUSCA DA TOPBAR / GATILHO DO ⌘K ---------- */
+.busca-gatilho {
+  display: flex; align-items: center; gap: 8px;
+  height: var(--dens-campo); padding: 0 10px;
+  min-width: 190px;
+  border: var(--border-w) solid var(--border-controle);
+  border-radius: var(--r-campo);
+  background: var(--void); color: var(--fade);
+  font-family: var(--font-body); font-size: 0.8125rem; cursor: pointer;
+  transition: border-color var(--t-in) var(--ease), color var(--t-in) var(--ease);
+}
+.busca-gatilho:hover { border-color: var(--muted); color: var(--muted); }
+.tecla {
+  font-family: var(--font-mono); font-size: 0.625rem; font-weight: 600;
+  padding: 2px 5px; border-radius: 4px;
+  border: var(--border-w) solid var(--border);
+  background: var(--surface); color: var(--fade);
+  white-space: nowrap;
+}
+.busca-gatilho .tecla { margin-left: auto; }
+
+/* ---------- AVATAR ---------- */
+.avatar {
+  width: 28px; height: 28px; border-radius: 500px; flex: none;
+  display: grid; place-items: center;
+  background: color-mix(in oklab, var(--accent) 22%, var(--surface));
+  color: var(--accent-texto);
+  font-size: 0.6875rem; font-weight: 700; letter-spacing: 0;
+  border: var(--border-w) solid var(--border);
+}
+.avatar--pilha { margin-left: -8px; box-shadow: 0 0 0 2px var(--surface); }
+
+/* ---------- ABAS ---------- */
+.abas {
+  display: flex; gap: 2px; align-items: flex-end;
+  border-bottom: var(--border-w) solid var(--border);
+}
+.aba {
+  font-family: var(--font-body); font-size: var(--dens-texto); font-weight: 500;
+  padding: 9px 12px; background: transparent; border: 0; cursor: pointer;
+  color: var(--muted); position: relative; letter-spacing: var(--tk-body);
+  transition: color var(--t-in) var(--ease);
+}
+.aba::after {
+  content: ''; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px;
+  background: var(--accent-texto); border-radius: 2px;   /* marca fina: variante de contraste */
+  transform: scaleX(0); transform-origin: center;
+  transition: transform var(--t-in) var(--ease);
+}
+.aba:hover { color: var(--ink); }
+.aba[aria-selected="true"] { color: var(--ink); font-weight: 600; }
+.aba[aria-selected="true"]::after { transform: scaleX(1); }
+
+/* ---------- COMMAND PALETTE (⌘K) ---------- */
+.paleta-fundo {
+  position: fixed; inset: 0; z-index: 300;
+  background: color-mix(in oklab, var(--void) 55%, transparent);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  display: grid; place-items: start center; padding-top: 12vh;
+}
+.paleta-fundo[hidden] { display: none; }
+.paleta {
+  width: min(100% - 32px, 520px);
+  background: var(--raised);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--r-card);
+  box-shadow: var(--elev-overlay);
+  overflow: hidden;
+}
+.paleta__campo {
+  width: 100%; border: 0; border-bottom: var(--border-w) solid var(--border);
+  background: transparent; color: var(--ink);
+  font-family: var(--font-body); font-size: 0.9375rem;
+  padding: 14px 16px; outline: none;
+}
+.paleta__campo::placeholder { color: var(--fade); }
+.paleta__lista { list-style: none; margin: 0; padding: 6px; max-height: 260px; overflow-y: auto; }
+.paleta__grupo {
+  font-family: var(--font-mono); font-size: 0.5625rem; text-transform: uppercase;
+  letter-spacing: var(--tk-micro); color: var(--fade); padding: 8px 10px 4px;
+}
+.paleta__item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: var(--r-campo);
+  font-size: 0.875rem; color: var(--muted); cursor: pointer;
+}
+.paleta__item[aria-selected="true"] {
+  background: color-mix(in oklab, var(--accent) 15%, transparent);
+  color: var(--accent-texto);
+}
+.paleta__item mark { background: transparent; color: var(--accent-texto); font-weight: 700; }
+.paleta__item .tecla { margin-left: auto; }
+.paleta__vazio { padding: 22px 16px; color: var(--fade); font-size: 0.8125rem; text-align: center; }
+.paleta__pe {
+  display: flex; gap: 14px; padding: 8px 14px;
+  border-top: var(--border-w) solid var(--border);
+  font-family: var(--font-mono); font-size: 0.5625rem; color: var(--fade);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+
+/* ---------- ATALHOS DOCUMENTADOS ---------- */
+.atalhos { display: grid; gap: 2px; width: 100%; }
+.atalhos div {
+  display: flex; align-items: center; gap: 10px; justify-content: space-between;
+  padding: 7px 0; border-bottom: var(--border-w) solid var(--border);
+  font-size: 0.8125rem; color: var(--muted);
+}
+.atalhos div:last-child { border-bottom: 0; }
+.atalhos kbd {
+  font-family: var(--font-mono); font-size: 0.625rem; font-weight: 600;
+  padding: 3px 6px; border-radius: 4px;
+  border: var(--border-w) solid var(--border); background: var(--surface); color: var(--ink);
+}
+
+/* ---------- ONBOARDING: checklist de primeiro valor ---------- */
+.checklist { width: 100%; display: grid; gap: 6px; }
+.checklist__barra {
+  height: 4px; border-radius: 4px; background: color-mix(in oklab, var(--ink) 16%, transparent); overflow: hidden;
+  margin-bottom: 6px;
+}
+/* clip-path em vez de width: anima sem layout e preserva o raio da ponta. */
+.checklist__barra i { display: block; height: 100%; width: 100%; background: var(--accent-texto); border-radius: 4px;
+  clip-path: inset(0 calc(100% - var(--p, 0%)) 0 0 round 4px);
+  transition: clip-path var(--t-painel) var(--ease); }
+.checklist__item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: var(--r-campo);
+  border: var(--border-w) solid var(--border); background: var(--raised);
+  font-size: var(--dens-texto); color: var(--ink); cursor: pointer;
+  text-align: left; font-family: var(--font-body); width: 100%;
+  transition: border-color var(--t-in) var(--ease), opacity var(--t-in) var(--ease);
+}
+.checklist__item:hover { border-color: var(--muted); }
+.checklist__marca {
+  width: 18px; height: 18px; border-radius: 500px; flex: none;
+  border: var(--border-w) solid var(--border);
+  display: grid; place-items: center; color: transparent;
+  transition: background-color var(--t-in) var(--ease), border-color var(--t-in) var(--ease);
+}
+.checklist__item[aria-pressed="true"] { color: var(--muted); }
+.checklist__item[aria-pressed="true"] .checklist__rotulo { text-decoration: line-through; }
+.checklist__item[aria-pressed="true"] .checklist__marca {
+  background: var(--ok); border-color: var(--ok); color: var(--void);
+}
+.checklist__marca svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 2.6; fill: none; }
+.checklist__item .tecla { margin-left: auto; }
+
+/* ---------- ESTADOS GLOBAIS (404, sem permissão, sessão, offline) ---------- */
+.global {
+  text-align: center; display: grid; gap: 10px; place-items: center;
+  padding: var(--space-card); max-width: 40ch; margin-inline: auto;
+}
+.global__codigo {
+  font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: var(--tk-micro);
+  text-transform: uppercase; color: var(--fade);
+}
+.global__titulo { font-size: 1.0625rem; font-weight: 600; color: var(--ink); margin: 0; letter-spacing: var(--tk-h3); }
+.global__texto { font-size: 0.8125rem; color: var(--muted); margin: 0; line-height: 1.5; }
+.global__icone {
+  width: 34px; height: 34px; stroke: var(--fade); fill: none; stroke-width: 1.3;
+}

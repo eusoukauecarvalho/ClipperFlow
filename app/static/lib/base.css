@@ -1,0 +1,288 @@
+/* =========================================================================
+   BASE — reset, acabamento e o chassi da biblioteca
+   Acabamento conforme ../../../../ACABAMENTO.md
+   ========================================================================= */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  scrollbar-gutter: stable;
+  overscroll-behavior-y: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: var(--lh-body);
+  letter-spacing: var(--tk-body);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 400ms var(--ease), color 400ms var(--ease);
+}
+
+img, canvas, svg { display: block; max-width: 100%; }
+
+/* Defensiva: qualquer `display` de componente vence o `display:none` que o
+   navegador dá ao [hidden] (mesma especificidade, folha do autor ganha).
+   Em app isso vaza sozinho — todo estado de overlay e de erro usa [hidden]. */
+[hidden] { display: none !important; }
+
+::selection { background: var(--accent); color: var(--accent-ink); text-shadow: none; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--r-card);
+}
+:focus:not(:focus-visible) { outline: none; }
+
+.skip-link {
+  position: absolute; left: -9999px; top: 8px; z-index: 200;
+  background: var(--accent); color: var(--accent-ink);
+  padding: 12px 20px; border-radius: var(--r-btn);
+  font-size: 0.6875rem; font-weight: 700; text-decoration: none;
+}
+.skip-link:focus { left: 8px; }
+
+/* ---------- TIPOGRAFIA ---------- */
+.display, .h2 {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  text-transform: var(--display-transform);
+  letter-spacing: var(--display-tracking);
+  line-height: var(--lh-display);
+  margin: 0;
+  text-wrap: balance;
+}
+.display { font-size: clamp(2.5rem, 8vw, 6rem); }
+.h2      { font-size: clamp(1.75rem, 4vw, 3rem); line-height: var(--lh-h2); }
+
+.h3 {
+  font-family: var(--font-body);
+  font-size: clamp(1.125rem, 1.8vw, 1.4rem);
+  font-weight: 700; line-height: var(--lh-h3);
+  letter-spacing: var(--tk-h3);
+  margin: 0 0 var(--space-element);
+  text-wrap: balance;
+}
+
+/* Headroom p/ diacrítico — sem isso, caixa alta em pt-BR perde til e agudo
+   quando o SplitText aplica mask:'lines' com line-height ≤ 1. */
+.linha-split { padding-top: 0.18em; margin-top: -0.18em; }
+
+.lead {
+  font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+  line-height: 1.5; letter-spacing: var(--tk-h3);
+  color: var(--muted); max-width: 52ch; margin: 0; text-wrap: pretty;
+}
+
+p { text-wrap: pretty; }
+
+.micro {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: var(--tk-micro);
+  line-height: 1.4; color: var(--fade); margin: 0;
+}
+
+code, .mono { font-family: var(--font-mono); font-size: 0.8125em; }
+
+/* ---------- CHASSI ---------- */
+.wide { width: min(100% - var(--gutter) * 2, var(--track-wide)); margin-inline: auto; }
+
+/* Cabeçalho fixo com o trocador de direção */
+.topo {
+  position: fixed; inset: 0 0 auto 0; z-index: 100;
+  display: flex; align-items: center; gap: var(--space-card);
+  padding: 12px var(--gutter);
+  background: color-mix(in oklab, var(--void) 80%, transparent);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-bottom: var(--border-w) solid var(--border);
+}
+.topo__marca {
+  font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: var(--tk-micro);
+  color: var(--ink); margin-right: auto; white-space: nowrap;
+}
+.topo__marca b { color: var(--accent-texto); }
+
+.trocador { display: flex; gap: 4px; flex-wrap: wrap; }
+.trocador button {
+  font-family: var(--font-mono); font-size: 0.625rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 7px 12px; border-radius: var(--r-btn);
+  background: transparent; color: var(--fade);
+  border: var(--border-w) solid var(--border);
+  cursor: pointer;
+  transition: color var(--t-in) var(--ease), background-color var(--t-in) var(--ease),
+              border-color var(--t-in) var(--ease);
+}
+.trocador button:hover { color: var(--ink); transition-duration: var(--t-out); }
+.trocador button[aria-pressed="true"] {
+  background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
+}
+
+/* Índice lateral */
+.indice {
+  position: fixed; top: 50%; right: var(--gutter); transform: translateY(-50%);
+  z-index: 90; display: none; flex-direction: column; gap: 2px;
+}
+.indice a {
+  font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--fade); text-decoration: none;
+  padding: 4px 10px; border-right: 2px solid transparent;
+  transition: color var(--t-in) var(--ease), border-color var(--t-in) var(--ease);
+}
+.indice a:hover, .indice a.is-atual { color: var(--ink); border-right-color: var(--accent); }
+@media (min-width: 1400px) { .indice { display: flex; } }
+
+/* ---------- SEÇÃO E FICHA ---------- */
+.secao { padding-block: var(--space-section); position: relative; }
+.secao__cabeca { margin-bottom: var(--space-block); }
+.secao__cabeca .h2 { margin-block: var(--space-element) var(--space-card); }
+.secao__cabeca .lead { max-width: 60ch; }
+
+.grade {
+  display: grid; gap: var(--space-card);
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+}
+.grade--2 { grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr)); }
+
+/* Ficha = o card que embala cada demo */
+.ficha {
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.ficha__palco {
+  padding: var(--space-block) var(--space-card);
+  min-height: 190px;
+  flex: 1;                       /* iguala a altura das fichas na mesma linha do grid */
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+  background: var(--void);
+}
+.ficha__pe {
+  padding: 12px var(--space-card);
+  border-top: var(--border-w) solid var(--border);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+}
+.ficha__nome {
+  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600;
+  letter-spacing: 0.02em; color: var(--ink);
+}
+.ficha__tag {
+  font-family: var(--font-mono); font-size: 0.625rem;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--fade);
+  white-space: nowrap;
+}
+
+/* ---------- BOTÕES ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 26px; border-radius: var(--r-btn);
+  font-family: var(--font-body); font-size: 0.9375rem; font-weight: 700;
+  letter-spacing: var(--tk-body); text-decoration: none;
+  border: var(--border-w) solid transparent; cursor: pointer;
+  transition: background-color var(--t-in) var(--ease), border-color var(--t-in) var(--ease),
+              color var(--t-in) var(--ease), box-shadow var(--t-in) var(--ease),
+              transform var(--t-in) var(--ease);
+}
+.btn:hover { transition-duration: var(--t-out); }
+.btn--primario { background: var(--accent); color: var(--accent-ink); }
+.btn--primario:hover { box-shadow: 0 0 0 7px color-mix(in oklab, var(--accent) 22%, transparent); }
+.btn--ghost { background: transparent; color: var(--ink); border-color: var(--border); }
+.btn--ghost:hover { border-color: var(--muted); }
+
+/* ---------- HAIRLINE RETINA ---------- */
+@media (min-resolution: 2dppx) {
+  :root { --border-w: 0.5px; }
+  [data-direcao="brutalist"] { --border-w: 2px; }   /* aqui a borda grossa é intencional */
+}
+
+/* Três trocadores não cabem numa linha estreita, e a topbar fixa passa a
+   cobrir o conteúdo. Abaixo de 1100px ela rola junto com a página. */
+@media (max-width: 1100px) {
+  .topo { position: static; }
+  #conteudo > .secao:first-child { padding-top: var(--space-section) !important; }
+}
+
+/* ---------- TROCADORES DE TEMA E DENSIDADE (só existem nesta categoria) ---------- */
+.topo__ferramentas { display: flex; gap: var(--space-element); align-items: center; flex-wrap: wrap; }
+.seg {
+  display: inline-flex; border: var(--border-w) solid var(--border);
+  border-radius: var(--r-btn); overflow: hidden;
+}
+.seg button {
+  font-family: var(--font-mono); font-size: 0.625rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 7px 11px; background: transparent; color: var(--fade);
+  border: 0; cursor: pointer;
+  transition: color var(--t-in) var(--ease), background-color var(--t-in) var(--ease);
+}
+.seg button + button { border-left: var(--border-w) solid var(--border); }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* ---------- MOVIMENTO REDUZIDO ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* =========================================================================
+   PLATAFORMA 2026 — o que o navegador passou a fazer sozinho
+   (PLATAFORMA-2026.md na raiz). Toda regra aqui degrada de graça: navegador
+   sem suporte ignora a linha e fica exatamente como estava.
+   ========================================================================= */
+
+/* 1 · O esquema de cor é DECLARADO, não só pintado. Sem isto, scrollbar,
+   <select>, <input type="date">, checkbox nativo e o fundo do documento
+   durante o carregamento seguem o tema do SISTEMA, não o nosso.
+   [data-tema] já é a fonte da escada de L; agora também é a do navegador. */
+[data-tema="claro"]  { color-scheme: light; }
+[data-tema="escuro"] { color-scheme: dark; }
+
+/* 2 · "Reduzir transparência" (macOS/iOS): vidro vira superfície opaca.
+   Vale para o topo do catálogo; as fichas de vidro repetem a regra. */
+@media (prefers-reduced-transparency: reduce) {
+  .topo { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--void); }
+}
+
+/* 3 · Alto contraste forçado (Windows). O sistema troca TODAS as cores; o
+   que some é o que só existia por preenchimento — o estado pressionado e a
+   borda transparente do botão. Devolvemos por contorno e por borda. */
+@media (forced-colors: active) {
+  [aria-pressed="true"], [aria-current], [aria-selected="true"] {
+    outline: 2px solid Highlight; outline-offset: -2px;
+  }
+  .btn, .acao, .trocador button, .filtro, .pilula, .input, .select, .textarea {
+    border-color: ButtonText;
+  }
+}
+
+/* 4 · "Mais contraste" pedido pelo sistema: o hairline vira linha e o foco
+   engrossa. Vem DEPOIS da regra de retina de propósito — ela ganha. */
+@media (prefers-contrast: more) {
+  :root { --border-w: 1.5px; }
+  :focus-visible { outline-width: 3px; }
+}
+
+/* 5 · Ponteiro grosso: o chrome do catálogo respeita 44px. Os componentes
+   têm a própria régua (em mobile, 44/48 por plataforma). */
+@media (pointer: coarse) {
+  .trocador button, .seg button, .indice a { min-height: 44px; }
+}
+
+/* 6 · `height: auto` passa a ser animável (Chrome 129+). Onde não há
+   transition nada muda; onde há, `0 → auto` deixa de saltar. */
+:root { interpolate-size: allow-keywords; }

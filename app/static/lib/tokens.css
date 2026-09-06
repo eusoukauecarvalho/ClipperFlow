@@ -1,0 +1,289 @@
+/* =========================================================================
+   TOKENS — as 4 direções de arte de ../../../../DIRECOES-DE-ARTE.md
+   aplicadas a APP, onde a exigência muda em três pontos:
+
+   1. DARK NASCE DA FÓRMULA (COR.md §5) — os neutros das 4 direções são
+      gerados a partir de --hue-neutro/--c-neutro e uma escada de L.
+      [data-tema] troca só a escada. Nenhuma cor de dark escolhida à mão.
+      É o critério #6 de ../../../../REFERO/PADROES-APLICATIVOS.md §4.
+   2. SEMÂNTICOS SÃO OBRIGATÓRIOS — app tem estado: ok/alerta/erro/info.
+   3. DENSIDADE É TOKEN — tabela pode ser densa, formulário não pode.
+      [data-densidade] troca a régua sem tocar em marcação.
+   ========================================================================= */
+
+:root {
+  /* ---- ESPAÇO — escala 8/24/48/80/160 (GRID-E-COMPOSICAO.md §1) */
+  --space-element: 8px;
+  --space-card:   20px;
+  --space-block:  32px;
+  --space-section: 56px;
+  --space-chapter: 88px;
+
+  --track-wide: 1180px;
+  --track-text: 65ch;
+  --gutter: 20px;
+
+  /* ---- TRACKING — o gradiente por corpo (TIPOGRAFIA.md §1) */
+  --tk-display: -0.02em;
+  --tk-h2:      -0.015em;
+  --tk-h3:      -0.009em;
+  --tk-body:    -0.004em;
+  --tk-micro:    0.14em;
+
+  /* ---- LINE-HEIGHT — a escada 1.4 → 1.0 */
+  --lh-display: 1.0;
+  --lh-h2:      1.1;
+  --lh-h3:      1.2;
+  --lh-body:    1.6;
+
+  /* ---- MOTION — em app, motion é FEEDBACK (APLICATIVOS/APP WEB/CLAUDE.md).
+     Duas faixas, não uma: interação e mudança de contexto. */
+  --t-in:      120ms;   /* pressionar, marcar, focar — o limite do "instantâneo" */
+  --t-out:     200ms;   /* soltar, desfazer hover */
+  --t-painel:  280ms;   /* drawer, modal, troca de painel */
+  --t-painel-out: 220ms;
+  --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-saida: cubic-bezier(0.4, 0, 1, 1);
+  --lerp: 0.12;
+
+  /* =====================================================================
+     DENSIDADE — confortável é o padrão (formulários, ações).
+     [data-densidade="compacta"] é o contrato de tabela/log.
+     ===================================================================== */
+  --dens-linha: 44px;       /* altura de linha de tabela/lista */
+  --dens-pad-x: 16px;
+  --dens-pad-y: 12px;
+  --dens-campo: 40px;       /* altura de input e botão */
+  --dens-texto: 0.875rem;   /* 14px — canônico de UI (Dub: 1220 ocorrências em 16px body / 14px UI) */
+  --dens-gap: 12px;
+}
+
+[data-densidade="compacta"] {
+  --dens-linha: 30px;
+  --dens-pad-x: 10px;
+  --dens-pad-y: 5px;
+  --dens-campo: 30px;
+  --dens-texto: 0.75rem;    /* 12px mono — a densidade de terminal do Axiom */
+  --dens-gap: 6px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --space-card:   24px;
+    --space-block:  48px;
+    --space-section: 80px;
+    --space-chapter: 160px;
+    --gutter: 40px;
+  }
+}
+
+/* =========================================================================
+   A FÓRMULA DOS NEUTROS — COR.md §5.
+   Uma escada de L por tema; hue e chroma vêm da direção. O dark não é
+   redesenhado: é a mesma paleta com outra escada.
+   ========================================================================= */
+:root {
+  --l-void:    99%;    /* canvas */
+  --l-surface: 96.5%;  /* superfície aninhada */
+  --l-raised: 100%;    /* card sobre o canvas — no claro, mais CLARO que o fundo */
+  --l-border:  88%;
+  --l-fade:    50%;    /* rótulo micro */
+  --l-muted:   42%;    /* texto auxiliar */
+  --l-ink:     20%;    /* texto primário */
+  --l-border-controle: 55%;   /* borda de input/select/botão ghost — precisa de 3:1 */
+  --c-bump: 1;
+  --borda-luz: transparent;   /* elevação por borda luminosa só existe no dark */
+}
+
+[data-tema="escuro"] {
+  --l-void:    13%;    /* regra 1: nunca #000 como canvas (12–17%) */
+  --l-surface: 16.5%;
+  --l-raised:  20%;    /* regra 3: no dark, elevado também é mais claro */
+  --l-border:  27%;
+  --l-fade:    62%;
+  --l-muted:   70%;
+  --l-ink:     95%;    /* regra 2: nunca #fff — 92–96% */
+  --l-border-controle: 50%;
+  --c-bump: 1.4;       /* um pouco MAIS chroma no dark */
+  --borda-luz: oklch(100% 0 0 / 0.07);
+}
+
+:root, [data-tema] {
+  --void:    oklch(var(--l-void)    calc(var(--c-neutro) * var(--c-bump) * 0.35) var(--hue-neutro));
+  --surface: oklch(var(--l-surface) calc(var(--c-neutro) * var(--c-bump) * 0.6)  var(--hue-neutro));
+  --raised:  oklch(var(--l-raised)  calc(var(--c-neutro) * var(--c-bump) * 0.5)  var(--hue-neutro));
+  --border:  oklch(var(--l-border)  calc(var(--c-neutro) * var(--c-bump) * 0.8)  var(--hue-neutro));
+  --fade:    oklch(var(--l-fade)    calc(var(--c-neutro) * var(--c-bump))        var(--hue-neutro));
+  --muted:   oklch(var(--l-muted)   calc(var(--c-neutro) * var(--c-bump))        var(--hue-neutro));
+  --ink:     oklch(var(--l-ink)     calc(var(--c-neutro) * var(--c-bump))        var(--hue-neutro));
+
+  /* A borda do card é decorativa e pode ser hairline; a do CONTROLE carrega
+     informação (aqui há um campo) e por isso precisa de 3:1 contra o canvas.
+     Dub chama isso de assinatura: "inputs use near-black border — inputs feel
+     important, not optional". Medido: --border sozinho dá ~1.35:1 e reprova. */
+  --border-controle: oklch(var(--l-border-controle) calc(var(--c-neutro) * var(--c-bump) * 0.9) var(--hue-neutro));
+}
+
+/* =========================================================================
+   1 · CINEMÁTICO IMERSIVO — tema natural: escuro
+   ========================================================================= */
+[data-direcao="cinematico"] {
+  --hue-neutro: 285;
+  --c-neutro: 0.012;
+
+  --accent:       oklch(74% 0.155 62);
+  --accent-ink:   oklch(20% 0.05  62);
+  --accent-texto: oklch(74% 0.155 62);
+
+  --ok:     oklch(72% 0.15 150);
+  --alerta: oklch(80% 0.16 78);
+  --erro:   oklch(68% 0.19 25);
+  --info:   oklch(72% 0.13 240);
+
+  --font-display: 'Anton', Impact, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --display-transform: uppercase;
+  --display-tracking: 0.02em;
+  --display-weight: 400;
+
+  --r-btn: 500px;
+  --r-card: 6px;
+  --r-campo: 6px;
+  --lerp: 0.08;
+  --caracter: "dramático";
+}
+[data-direcao="cinematico"][data-tema="claro"] {
+  --accent:       oklch(52% 0.145 45);
+  --accent-ink:   oklch(99% 0.01  62);
+  --accent-texto: oklch(48% 0.145 45);
+  --ok:     oklch(46% 0.13 150);
+  --alerta: oklch(50% 0.14 70);
+  --erro:   oklch(50% 0.19 27);
+  --info:   oklch(48% 0.14 250);
+}
+
+/* =========================================================================
+   3 · SOFT-TECH PRECISION — a direção padrão de app. Tema natural: escuro
+   ========================================================================= */
+[data-direcao="softtech"] {
+  --hue-neutro: 265;
+  --c-neutro: 0.010;
+
+  --accent:       oklch(52% 0.160 274);
+  --accent-ink:   oklch(99% 0.005 274);
+  --accent-texto: oklch(72% 0.140 274);
+
+  --ok:     oklch(70% 0.15 152);
+  --alerta: oklch(80% 0.15 80);
+  --erro:   oklch(68% 0.19 25);
+  --info:   oklch(72% 0.13 240);
+
+  --font-display: 'Schibsted Grotesk', system-ui, sans-serif;
+  --font-body: 'Schibsted Grotesk', system-ui, sans-serif;
+  --font-mono: 'Spline Sans Mono', ui-monospace, monospace;
+
+  --display-transform: none;
+  --display-tracking: -0.025em;
+  --display-weight: 600;
+
+  --r-btn: 8px;
+  --r-card: 12px;
+  --r-campo: 6px;
+  --lerp: 0.12;
+  --caracter: "contido, mas presente";
+}
+[data-direcao="softtech"][data-tema="claro"] {
+  --accent-texto: oklch(48% 0.160 274);
+  --ok:     oklch(46% 0.13 152);
+  --alerta: oklch(50% 0.14 72);
+  --erro:   oklch(50% 0.19 27);
+  --info:   oklch(48% 0.14 250);
+}
+
+/* =========================================================================
+   4 · BRUTALIST CLEAN — tema natural: claro. Cinza puro é válido aqui.
+   ========================================================================= */
+[data-direcao="brutalist"] {
+  --l-border-controle: 12%;   /* aqui a borda preta JÁ é a assinatura */
+  --hue-neutro: 0;
+  --c-neutro: 0;
+  --l-void: 94%;
+  --l-surface: 88%;
+  --l-raised: 97%;
+  --l-border: 12%;      /* a borda preta é a assinatura, não um hairline */
+  --l-fade: 46%;
+  --l-muted: 34%;
+  --l-ink: 12%;
+
+  --accent:       oklch(88% 0.23 122);   /* PREENCHIMENTO. Como texto dá 1.15:1 — nunca use */
+  --accent-ink:   oklch(15% 0.08 122);
+  --accent-texto: oklch(40% 0.16 122);   /* a variante legível do mesmo hue */
+
+  --ok:     oklch(42% 0.15 150);
+  --alerta: oklch(45% 0.14 70);
+  --erro:   oklch(45% 0.20 27);
+  --info:   oklch(42% 0.16 250);
+
+  --font-display: 'Archivo', 'Arial Black', sans-serif;
+  --font-body: 'Chivo', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --display-transform: uppercase;
+  --display-tracking: -0.01em;
+  --display-weight: 800;
+
+  --r-btn: 0px;
+  --r-card: 0px;
+  --r-campo: 0px;
+  --lerp: 0.06;
+  --caracter: "seco";
+}
+[data-direcao="brutalist"][data-tema="escuro"] {
+  --l-border-controle: 90%;
+  --l-void: 12%; --l-surface: 18%; --l-raised: 22%; --l-border: 90%;
+  --l-fade: 62%; --l-muted: 72%; --l-ink: 96%;
+  --accent-texto: oklch(88% 0.23 122);   /* no escuro o ácido volta a ser legível */
+  --ok:     oklch(75% 0.16 150);
+  --alerta: oklch(82% 0.15 78);
+  --erro:   oklch(68% 0.20 25);
+  --info:   oklch(74% 0.13 245);
+}
+
+/* Espessura de borda — no Brutalist é a assinatura */
+:root { --border-w: 1px; }
+[data-direcao="brutalist"] { --border-w: 2px; }
+
+/* =========================================================================
+   ELEVAÇÃO — a regra mais importante de app (PADROES-APLICATIVOS.md §1):
+   profundidade se faz com BORDA de 1px e espaçamento, não com sombra.
+   Sombra em uso diário vira ruído. Só overlay (o que flutua de verdade
+   sobre o conteúdo) ganha sombra, e ainda assim discreta.
+   ========================================================================= */
+:root {
+  --elev-0: none;
+  --elev-overlay: 0 10px 34px -12px oklch(0% 0 0 / 0.34), 0 2px 8px -4px oklch(0% 0 0 / 0.22);
+}
+[data-tema="escuro"] { --elev-overlay: 0 14px 40px -12px oklch(0% 0 0 / 0.7); }
+[data-direcao="brutalist"] { --elev-overlay: 5px 5px 0 var(--ink); }
+
+/* =========================================================================
+   DATAVIZ — paleta categórica em ordem FIXA (skill dataviz: nunca ciclar).
+   Validada com scripts/validate_palette.js nos dois temas.
+   ========================================================================= */
+:root {
+  --viz-1: oklch(58% 0.17 264);
+  --viz-2: oklch(54% 0.13 178);   /* 64% dava 2.8:1 sobre o canvas claro */
+  --viz-3: oklch(62% 0.17 34);
+  --viz-4: oklch(56% 0.19 320);
+  --viz-5: oklch(60% 0.12 120);
+  --viz-grade: color-mix(in oklab, var(--border) 70%, transparent);
+}
+[data-tema="escuro"] {
+  --viz-1: oklch(70% 0.16 264);
+  --viz-2: oklch(76% 0.14 178);
+  --viz-3: oklch(74% 0.16 42);
+  --viz-4: oklch(70% 0.17 320);
+  --viz-5: oklch(72% 0.13 120);
+}

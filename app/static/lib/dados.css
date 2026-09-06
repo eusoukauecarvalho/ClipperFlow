@@ -1,0 +1,263 @@
+/* =========================================================================
+   DADOS — o vocabulário de exibição: card, KPI, tabela, badge, os 4 estados
+   e o dataviz. Aqui mora a lacuna que nenhum âncora do Refero cobre
+   (REFERO/PADROES-APLICATIVOS.md §4): os 4 estados de cada view.
+   ========================================================================= */
+
+/* ---------- AMOSTRA DE PALETA (pintada pelo JS a partir dos tokens vigentes) ---------- */
+.amostra-cor { display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: 9px; width: 100%; }
+.amostra-cor div { border-radius: var(--r-campo); border: var(--border-w) solid var(--border); overflow: hidden; }
+.amostra-cor i { display: block; height: 44px; }
+.amostra-cor span {
+  display: block; padding: 5px 7px; font-family: var(--font-mono); font-size: 0.5625rem;
+  text-transform: uppercase; letter-spacing: 0.05em; color: var(--fade); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.amostra-cor em { font-style: normal; color: var(--muted); }
+
+/* ---------- DASHBOARD CARD ----------
+   Dub, 57 variantes: "flat, border-defined, no shadow". */
+.card {
+  background: var(--raised);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--r-card);
+  padding: var(--space-card);
+  box-shadow: var(--elev-0);
+}
+[data-tema="escuro"] .card { box-shadow: inset 0 1px 0 var(--borda-luz); }
+.card__cabeca {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  margin-bottom: var(--space-element);
+}
+.card__titulo {
+  font-size: 0.8125rem; font-weight: 600; color: var(--ink);
+  letter-spacing: var(--tk-body); margin: 0;
+}
+.card__sub { font-size: 0.6875rem; color: var(--fade); margin: 0; }
+
+/* Contraexemplo: o mesmo card com sombra — o que os 7 âncoras não fazem */
+.card--sombra { box-shadow: 0 4px 14px -2px oklch(0% 0 0 / 0.22), 0 2px 4px oklch(0% 0 0 / 0.12); border-color: transparent; }
+
+/* Superfície aninhada — tom, não sombra (Dub: "Nested Panel") */
+.painel-aninhado {
+  background: var(--surface); border-radius: var(--r-campo);
+  padding: var(--space-element) 12px;
+}
+
+/* ---------- KPI / STAT TILE ----------
+   dataviz: quando o dado é UM número, a forma certa não é gráfico. */
+.kpi { display: grid; gap: 4px; }
+.kpi__rotulo {
+  font-family: var(--font-mono); font-size: 0.5625rem; text-transform: uppercase;
+  letter-spacing: var(--tk-micro); color: var(--fade);
+}
+.kpi__valor {
+  font-size: clamp(1.5rem, 3vw, 1.875rem); font-weight: 650;
+  letter-spacing: -0.02em; line-height: 1.1; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.kpi__delta {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.75rem; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.kpi__delta--sobe { color: var(--ok); }
+.kpi__delta--desce { color: var(--erro); }
+.kpi__delta svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 2.4; fill: none; }
+.kpi__contexto { font-size: 0.6875rem; color: var(--fade); }
+
+/* ---------- TABELA ----------
+   Dub: só borda inferior. Sem zebra, sem borda vertical. */
+.tabela { width: 100%; border-collapse: collapse; font-size: var(--dens-texto); }
+
+/* Tabela em container estreito rola DENTRO da própria caixa — nunca empurra a
+   página. `tabindex=0` porque um container rolável precisa ser alcançável por
+   teclado, senão o conteúdo cortado fica inacessível. */
+.tabela-caixa { overflow-x: auto; width: 100%; }
+.tabela-caixa:focus-visible { outline-offset: -2px; }
+.tabela th {
+  text-align: left; font-weight: 500; color: var(--fade);
+  font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.07em;
+  padding: 8px var(--dens-pad-x); border-bottom: var(--border-w) solid var(--border);
+  white-space: nowrap;
+}
+.tabela td {
+  padding: var(--dens-pad-y) var(--dens-pad-x);
+  border-bottom: var(--border-w) solid var(--border);
+  color: var(--muted); height: var(--dens-linha);
+  transition: background-color var(--t-in) var(--ease);
+}
+.tabela tbody tr:last-child td { border-bottom: 0; }
+.tabela tbody tr:hover td { background: color-mix(in oklab, var(--ink) 4%, transparent); }
+.tabela tbody tr:focus-within td { background: color-mix(in oklab, var(--accent) 10%, transparent); }
+.tabela .num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); color: var(--ink); }
+.tabela .prim { color: var(--ink); font-weight: 500; }
+.tabela caption {
+  caption-side: top; text-align: left; font-size: 0.6875rem; color: var(--fade);
+  padding-bottom: 8px;
+}
+/* Ordenação — a seta é parte do botão, não um enfeite do th.
+   O botão ocupa a célula inteira: um alvo de 18px de altura reprova em toque. */
+.tabela th { padding: 0; }
+.tabela th button {
+  display: inline-flex; align-items: center; gap: 5px; background: none; border: 0;
+  font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;
+  cursor: pointer;
+  width: 100%; min-height: 34px; padding: 8px var(--dens-pad-x);
+}
+.tabela th:has(button) { padding: 0; }
+.tabela th[style*="right"] button { justify-content: flex-end; }
+.tabela th button:hover { color: var(--ink); }
+.tabela th svg { width: 9px; height: 9px; stroke: currentColor; stroke-width: 2.4; fill: none; opacity: 0.4; }
+.tabela th[aria-sort] button { color: var(--ink); }
+.tabela th[aria-sort] svg { opacity: 1; }
+.tabela th[aria-sort="descending"] svg { transform: rotate(180deg); }
+
+/* A densidade de terminal do Axiom: mono 12px, divisórias mais escuras */
+.tabela--log { font-family: var(--font-mono); font-size: 0.75rem; }
+.tabela--log td { color: var(--muted); white-space: nowrap; }
+.tabela--log .ts { color: var(--fade); }
+
+/* ---------- STATUS BADGE ----------
+   Dub: fundo tingido + PONTO colorido + texto escuro. O ponto é o que
+   impede o estado de depender só de cor (COR.md §4). */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 500px;
+  font-size: 0.6875rem; font-weight: 600; letter-spacing: 0;
+  white-space: nowrap;
+  border: var(--border-w) solid transparent;
+}
+.badge::before { content: ''; width: 6px; height: 6px; border-radius: 500px; background: currentColor; flex: none; }
+.badge--ok     { color: var(--ok);     background: color-mix(in oklab, var(--ok) 15%, transparent); }
+.badge--alerta { color: var(--alerta); background: color-mix(in oklab, var(--alerta) 16%, transparent); }
+.badge--erro   { color: var(--erro);   background: color-mix(in oklab, var(--erro) 15%, transparent); }
+.badge--info   { color: var(--info);   background: color-mix(in oklab, var(--info) 15%, transparent); }
+.badge--neutro { color: var(--muted);  background: color-mix(in oklab, var(--ink) 8%, transparent); }
+/* O texto do badge herda a cor do estado; em fundo tingido isso precisa de
+   contraste próprio — medido em todas as direções nos dois temas. */
+
+/* Contraexemplo do ClickUp: pílula saturada com texto branco */
+.badge--saturado { background: oklch(62% 0.2 245); color: oklch(100% 0 0); }
+.badge--saturado::before { display: none; }
+
+/* ---------- OS 4 ESTADOS ---------- */
+
+/* 1 · CARREGANDO — skeleton FIEL ao layout final, nunca spinner solto */
+.skel {
+  background: linear-gradient(90deg,
+    color-mix(in oklab, var(--ink) 7%, transparent) 25%,
+    color-mix(in oklab, var(--ink) 13%, transparent) 37%,
+    color-mix(in oklab, var(--ink) 7%, transparent) 63%);
+  background-size: 400% 100%;
+  animation: skel 1.4s ease infinite;
+  border-radius: 4px; display: block;
+}
+@keyframes skel { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+@media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
+
+/* 2 · VAZIO — orienta o próximo passo, não anuncia a ausência */
+.vazio {
+  display: grid; gap: 10px; place-items: center; text-align: center;
+  padding: var(--space-block) var(--space-card); max-width: 36ch; margin-inline: auto;
+}
+.vazio__icone { width: 30px; height: 30px; stroke: var(--fade); fill: none; stroke-width: 1.3; }
+.vazio__titulo { font-size: 0.9375rem; font-weight: 600; color: var(--ink); margin: 0; }
+.vazio__texto { font-size: 0.8125rem; color: var(--muted); margin: 0; line-height: 1.5; }
+
+/* 3 · ERRO — diz o que houve E como recuperar */
+.erro-bloco {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px; border-radius: var(--r-campo);
+  border: var(--border-w) solid color-mix(in oklab, var(--erro) 68%, var(--border));
+  background: color-mix(in oklab, var(--erro) 9%, transparent);
+  width: 100%;
+}
+.erro-bloco svg { width: 16px; height: 16px; flex: none; stroke: var(--erro); fill: none; stroke-width: 1.8; margin-top: 1px; }
+.erro-bloco b { display: block; font-size: 0.8125rem; color: var(--ink); margin-bottom: 3px; }
+.erro-bloco p { font-size: 0.75rem; color: var(--muted); margin: 0 0 10px; line-height: 1.5; }
+.erro-bloco code { color: var(--fade); }
+
+/* 4 · SUCESSO/PARCIAL — dados reais + paginação definida */
+.paginacao {
+  display: flex; align-items: center; gap: 8px; justify-content: space-between;
+  padding-top: 12px; flex-wrap: wrap;
+}
+.paginacao__info { font-size: 0.6875rem; color: var(--fade); font-variant-numeric: tabular-nums; }
+.paginacao__btns { display: flex; gap: 4px; }
+.pg {
+  min-width: 26px; height: 26px; padding: 0 7px;
+  display: inline-grid; place-items: center;
+  border: var(--border-w) solid var(--border-controle); border-radius: var(--r-campo);
+  background: transparent; color: var(--muted);
+  font-family: var(--font-mono); font-size: 0.6875rem; cursor: pointer;
+  transition: border-color var(--t-in) var(--ease), color var(--t-in) var(--ease);
+}
+.pg:hover:not(:disabled) { color: var(--ink); border-color: var(--muted); }
+.pg[aria-current="page"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.pg:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ---------- DATAVIZ ----------
+   skill dataviz: marcas finas, grade recessiva, extremidade arredondada
+   de 4px ancorada na linha de base, gap de 2px entre barras adjacentes. */
+.viz { width: 100%; display: block; overflow: visible; }
+.viz .grade { stroke: var(--viz-grade); stroke-width: 1; }
+.viz .eixo {
+  font-family: var(--font-mono); font-size: 9px; fill: var(--fade);
+  letter-spacing: 0.04em;
+}
+.viz .serie { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.viz .barra { rx: 4; }
+.viz .ponto { r: 4; stroke: var(--raised); stroke-width: 2; }
+.viz .cursor { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .rotulo-direto {
+  font-family: var(--font-body); font-size: 10px; font-weight: 600; fill: var(--ink);
+}
+
+.legenda { display: flex; gap: 14px; flex-wrap: wrap; padding-top: 8px; }
+.legenda span {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.6875rem; color: var(--muted);   /* texto usa token de texto, NUNCA a cor da série */
+}
+.legenda i { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+
+.viz-dica {
+  position: absolute; pointer-events: none; z-index: 5;
+  background: var(--raised); border: var(--border-w) solid var(--border);
+  border-radius: var(--r-campo); box-shadow: var(--elev-overlay);
+  padding: 7px 10px; font-size: 0.6875rem; color: var(--ink);
+  white-space: nowrap; opacity: 0; transform: translate(-50%, -120%);
+  transition: opacity var(--t-in) var(--ease);
+  font-variant-numeric: tabular-nums;
+}
+.viz-dica b { color: var(--fade); font-weight: 500; }
+.viz-wrap { position: relative; width: 100%; }
+
+/* Sparkline — a forma certa quando o dado é tendência, não valor */
+.spark { width: 100%; height: 30px; display: block; overflow: visible; }
+.spark path { fill: none; stroke: var(--viz-1); stroke-width: 1.6; stroke-linecap: round; }
+.spark circle { fill: var(--viz-1); r: 2.5; }
+
+/* ---------- ATIVIDADE / TIMELINE ---------- */
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; width: 100%; }
+.timeline li {
+  display: grid; grid-template-columns: 16px 1fr; gap: 12px;
+  padding-bottom: 16px; position: relative;
+}
+.timeline li:not(:last-child)::before {
+  content: ''; position: absolute; left: 7px; top: 16px; bottom: 0;
+  width: var(--border-w); background: var(--border);
+}
+.timeline__marca {
+  width: 15px; height: 15px; border-radius: 500px; margin-top: 2px;
+  border: var(--border-w) solid var(--border); background: var(--surface);
+  display: grid; place-items: center; position: relative; z-index: 1;
+}
+.timeline__marca i { width: 5px; height: 5px; border-radius: 500px; background: var(--fade); }
+.timeline li[data-estado="ok"] .timeline__marca i { background: var(--ok); }
+.timeline li[data-estado="agora"] .timeline__marca {
+  border-color: var(--accent); background: color-mix(in oklab, var(--accent) 20%, var(--surface));
+}
+.timeline li[data-estado="agora"] .timeline__marca i { background: var(--accent-texto); }
+.timeline__texto { font-size: 0.8125rem; color: var(--muted); line-height: 1.45; }
+.timeline__texto b { color: var(--ink); font-weight: 600; }
+.timeline__quando { font-family: var(--font-mono); font-size: 0.625rem; color: var(--fade); display: block; margin-top: 2px; }
